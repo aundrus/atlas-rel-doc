@@ -1,0 +1,318 @@
+#!/bin/sh
+function show_help() {
+    echo "ardoc_process_results: Error: incorrect option(s)"
+}
+###########
+comname=`basename $0`
+if [ "$comname" = "ardoc_process_results" ]; then
+exitcomtool="exit"
+else
+exitcomtool="return"
+fi
+
+this_dir=`dirname $0`
+#
+#dateString=`date +%Y-%m-%d-%H-%M`
+#epoch=`date +%s.%N`
+relDateStamp=""
+epoch=""
+arch="undefined"
+nname=""
+release_area=""
+stage="init"
+
+while [ $# -ne 0 ]; do
+    case $1 in
+         --stage) stage=$2; shift;;
+         --relarea) release_area=$2; shift;;
+         --epoch)   epoch=$2; shift;;
+         --relstamp) relDateStamp=$2; shift;;
+         -n | --nightly)   nname=$2; shift;;
+         --arch)    platf=$2; shift;;
+         -* | --*)         show_help; ${exitcomtool} 1;;
+    esac
+    shift
+done
+
+echo "ardoc_process_results: start: nightly name: ${nname}, stage: ${stage}" `date`
+
+if [ "${relDateStamp}" != "" ]; then
+  relDateStamp_minus_T=`echo ${relDateStamp} | tr "T" " "`
+  epoch=`date --date="$relDateStamp_minus_T" +%s.%N`
+  echo "ardoc_process_results: release name (datestamp) determined from command line option: ${relDateStamp}"
+else # if [ "${relDateStamp}" != "" ];
+  if [ "${epoch}" = "" ]; then
+    epoch=`date +%s.%N`
+    echo "ardoc_process_results: neither release name nor epoch indicated in command line. Use current date"
+  fi
+  relDateStamp=`date +%Y-%m-%dT%H%M -d@${epoch}`
+  echo "ardoc_process_results: release name (datestamp) derived from epoch time: ${relDateStamp}" 
+fi
+export ARDOC_PROJECT_RELNAME="$relDateStamp" 
+[[ "$ARDOC_PROJECT_RELNAME" = "" ]] && echo "ardoc_process_results: ERROR: ARDOC_PROJECT_RELNAME is not set" && ${exitcomtool} 1
+export ARDOC_EPOCH="$epoch"
+echo "ardoc_process_results: epoch time of the release : ${epoch}"
+
+[[ "$nname" != "" ]] && export ARDOC_NIGHTLY_NAME="$nname"
+[[ "$ARDOC_NIGHTLY_NAME" = "" ]] && echo "ardoc_process_results: Error: ARDOC_NIGHTLY_NAME is not set" && ${exitcomtool} 1
+[[ "$release_area" = "" ]] && echo "ardoc_process_results: Error: release_area is not set" && ${exitcomtool} 1
+echo "ardoc_process_results: running for nightly branch: $ARDOC_NIGHTLY_NAME"
+[[ "$ARDOC_HOME" = "" ]] && echo "ardoc_process_results: ERROR: ARDOC_HOME is not set" && ${exitcomtool} 1
+[[ ! -d  $ARDOC_HOME  ]] && echo "ardoc_process_results: ERROR: ARDOC_HOME $ARDOC_HOME does not exist" && ${exitcomtool} 1
+
+ARDOC_NIGHTLY_GROUP="experimental"
+shopt -s nocasematch
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^24.*$ ]] && ARDOC_NIGHTLY_GROUP="PRODUCTION"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*main.*$ ]] && ARDOC_NIGHTLY_GROUP="PRODUCTION"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*MAIN.*$ ]] && ARDOC_NIGHTLY_GROUP="PRODUCTION"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*main_Athena.*$ ]] && ARDOC_NIGHTLY_GROUP="DEVELOPMENT"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*main_AthSimulation.*$ ]] && ARDOC_NIGHTLY_GROUP="DEVELOPMENT"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*main_DetCommon.*$ ]] && ARDOC_NIGHTLY_GROUP="DEVELOPMENT"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*aarch.*$ ]] && ARDOC_NIGHTLY_GROUP="ARM"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*clang.*$ ]] && ARDOC_NIGHTLY_GROUP="CLANG"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*--.*$ ]] && ARDOC_NIGHTLY_GROUP="experimental"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*LCG.*$ ]] && ARDOC_NIGHTLY_GROUP="LCG"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^21.*$ ]] && ARDOC_NIGHTLY_GROUP="LEGACY"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^23.*$ ]] && ARDOC_NIGHTLY_GROUP="LEGACY"
+#[[ "${ARDOC_NIGHTLY_NAME}" =~ ^21\.9.*$ ]] && ARDOC_NIGHTLY_GROUP="LEGACY"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*const.*$ ]] && ARDOC_NIGHTLY_GROUP="experimental"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*audi.*$ ]] && ARDOC_NIGHTLY_GROUP="experimental"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*test.*$ ]] && ARDOC_NIGHTLY_GROUP="experimental"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*demand.*$ ]] && ARDOC_NIGHTLY_GROUP="ondemand"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*master.*$ ]] && ARDOC_NIGHTLY_GROUP="OBSOLETE"
+[[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*MASTER.*$ ]] && ARDOC_NIGHTLY_GROUP="OBSOLETE"
+shopt -u nocasematch
+export ARDOC_NIGHTLY_GROUP
+
+eval "$( echo ${ARDOC_NIGHTLY_NAME} | sed 's,^\([^_]\+\)_\([^_]\+\)_\([^\-]\+\)-\([^\-]\+\)-\([^\-]\+\)-\(.*\)$,branch_and_suffix=\1\;project=\2\; arch=\3\;flavour=\4\ comp=\5\; mode=\6\;,' )"
+branch=`echo ${branch_and_suffix} | sed 's,--.*$,,'`
+suffix=''
+if [[ "${branch_and_suffix}" =~ ^${branch}--.*$ ]]; then
+  suffix=`echo ${branch_and_suffix} | sed "s,^${branch}--,,"`
+fi
+export ARDOC_PROJECT_NAME="${project}"
+export ARDOC_SUFFIX_PREPEND=` echo ${branch}${suffix} | sed 's/[^a-zA-Z0-9_]//g'`
+export ARDOC_SUFFIX_PREPEND_EXTENDED=` echo ${branch}${suffix}${project}${comp}${mode} | sed 's/[^a-zA-Z0-9_]//g'`
+echo "ardoc_process_results: ARDOC_PROJECT_NAME ${ARDOC_PROJECT_NAME}, SUFFIX PREPEND EXTENDED ${ARDOC_SUFFIX_PREPEND_EXTENDED}"
+export ARDOC_ARCH="$platf"
+## EXIT on centos9
+#if [ "${flavour}" = "centos9" ]; then
+#echo "ardoc_process_results: NOT SUPPORTED ON CentOS9"
+#exit
+#fi
+##
+# LINK to the corresponding merge requests in GitLab
+export MR_GITLAB_LINK="https://gitlab.cern.ch/atlas/athena"
+#
+# SET paths to release build and source areas
+export ARDOC_SOURCEHOME=${release_area}/athena
+export ARDOC_RELHOME=${release_area}/build/build/${ARDOC_PROJECT_NAME}
+ext_project_name_retrieved=''
+if [ -f ${ARDOC_SOURCEHOME}/Projects/${ARDOC_PROJECT_NAME}/build_externals.sh ]; then
+    ext_project_name_read=$(grep -E 'ATLAS_EXT_PROJECT_NAME[[:space:]]*=' "${ARDOC_SOURCEHOME}/Projects/${ARDOC_PROJECT_NAME}/build_externals.sh" \
+  | sed -E 's/.*=[[:space:]]*//; s/^["'"'"']*//; s/["'"'"']*$//' \
+  | xargs)
+    if [[ "${ext_project_name_read}" =~ ^.*Externals ]]; then
+        echo "ardoc_process_results: Info: name of externals project read from Projects/${ARDOC_PROJECT_NAME}/build_externals.sh: ${ext_project_name_read}"
+	ext_project_name_retrieved="${ext_project_name_read}"
+    else
+        echo "ardoc_process_results: Warning: unexpected name of externals project read from Projects/${ARDOC_PROJECT_NAME}/build_externals.sh: ${ext_project_name_read}"
+	echo "ardoc_process_results: Info: this name will be ignored, default ${ARDOC_PROJECT_NAME}Externals will be used instead"
+    fi
+else
+    echo "ardoc_process_results: Warning: file ${ARDOC_SOURCEHOME}/Projects/${ARDOC_PROJECT_NAME}/build_externals.sh does not exist"
+    echo "ardoc_process_results: Warning: default name for externals project ${ARDOC_PROJECT_NAME}Externals will be used"
+fi    
+if [ "${ext_project_name_retrieved}" != "" ]; then
+    export ARDOC_EXTERNALSRELHOME=${release_area}/build/build/${ext_project_name_retrieved}
+else 
+    export ARDOC_EXTERNALSRELHOME=${release_area}/build/build/${ARDOC_PROJECT_NAME}Externals
+fi    
+echo "ardoc_process_results: variable ARDOC_EXTERNALSRELHOME set to ${ARDOC_EXTERNALSRELHOME}"
+
+# SET PATHS to logfiles 
+export ARDOC_CHECKOUTLOG=${release_area}/checkout.log
+export ARDOC_CMAKECONFIGLOG=${ARDOC_RELHOME}/cmake_config.log
+export ARDOC_CMAKEBUILDLOG=${ARDOC_RELHOME}/cmake_build.log
+export ARDOC_CMAKEBUILDLOGTAIL=${ARDOC_RELHOME}/cmake_buildlogtail.log
+export ARDOC_IMAGELOG=${release_area}/image_build.log
+export ARDOC_EXTERNALSLOG=${release_area}/externals_build.log
+export ARDOC_CPACKLOG=${release_area}/cpack_combined.log
+export ARDOC_NINJALOG=${ARDOC_RELHOME}/.ninja_log
+[[ ! -f ${ARDOC_CHECKOUTLOG} ]] && echo "ardoc_process_results: Warning: checkout logfile is not available, the documentation build configuration may need an adjustment" | tee ${ARDOC_CHECKOUTLOG}
+[[ ! -f ${ARDOC_CMAKECONFIGLOG} ]] && echo "ardoc_process_results: Warning: cmake config logfile is not available, the documentation build configuration may need an adjustment" | tee ${ARDOC_CMAKECONFIGLOG}
+[[ ! -f ${ARDOC_IMAGELOG} ]] && echo "ardoc_process_results: Warning: image build logfile is not available, image building is probably disabled" | tee ${ARDOC_IMAGELOG}
+[[ ! -f ${ARDOC_NINJALOG} ]] && echo "ardoc_process_results: Info: ninja logfile is not available, probably was not used" | tee ${ARDOC_NINJALOG}
+
+# Generation of CMAKEBUILDLOGTAIL - truncated version of cmake_build.log
+[[ -f ${ARDOC_CMAKEBUILDLOGTAIL} ]] && rm -f ${ARDOC_CMAKEBUILDLOGTAIL}
+echo "ardoc_process_results: Info: started generation of truncated version of cmake_build.log: ${ARDOC_CMAKEBUILDLOGTAIL}"
+python3 ${ARDOC_HOME}/ardoc_headtail.py -i ${ARDOC_CMAKEBUILDLOG} -o ${ARDOC_CMAKEBUILDLOGTAIL} -h 20 -t 500
+stat_cmakebuildlogtail=$?
+if [ "${stat_cmakebuildlogtail}" -eq 0 ]; then
+    echo "ardoc_process_results: Info: successfully generated truncated version of cmake_build.log"
+    if [ ! -d ${ARDOC_RELHOME}/BuildLogs ]; then
+	echo "ardoc_process_results: Warning: BuildLogs directory is missing in the local build area"
+	echo "ardoc_process_results: Warning: pseudo package CMake_BuildLogTail is not generated"
+    else
+	# Generating pseudo package CMake_BuildLogTail"
+        [[ -d ${ARDOC_SOURCEHOME}/CMake_BuildLogTail ]] && rm -rf ${ARDOC_SOURCEHOME}/CMake_BuildLogTail
+        mkdir ${ARDOC_SOURCEHOME}/CMake_BuildLogTail
+        CMakeLists_BuildLogTail=${ARDOC_SOURCEHOME}/CMake_BuildLogTail/CMakeLists.txt
+        touch ${CMakeLists_BuildLogTail}
+        echo "#" >> ${CMakeLists_BuildLogTail}
+        echo "This is an empty CMakeLists.txt file generated for a pseudo package"	>> ${CMakeLists_BuildLogTail}
+        echo "It should not have any actual code" >> ${CMakeLists_BuildLogTail}
+        echo "#" >> ${CMakeLists_BuildLogTail}
+        cp -a ${ARDOC_CMAKEBUILDLOGTAIL} ${ARDOC_RELHOME}/BuildLogs/CMake_BuildLogTail.log
+        echo "ardoc_process_results: Info: generated pseudo package CMake_BuildLogTail"
+    fi
+else
+    echo "ardoc_process_results: Warning: problems with generation of truncated version of cmake_build.log: exit code ${stat_cmakebuildlogtail}"
+fi
+
+# Generation of CPACKLOG
+[[ -f ${ARDOC_CPACKLOG} ]] && rm -f ${ARDOC_CPACKLOG}
+touch ${ARDOC_CPACKLOG}
+list_cpack_logfiles=$(ls -t ${ARDOC_RELHOME}/cmake_cpack*.log)
+if [ "${list_cpack_logfiles}" = "" ]; then
+    echo "ardoc_process_results: Warning: cpack logfiles are not available. Probably installation step was not performed"
+    echo "========================================================================================" >> ${ARDOC_CPACKLOG}
+    echo "==========CPACK DID NOT RUN FOR ${ARDOC_PROJECT_NAME} PROJECT=========" >> ${ARDOC_CPACKLOG}
+    echo "========================================================================================" >> ${ARDOC_CPACKLOG} 
+else
+    ar_list=(${list_cpack_logfiles}); el_list=${#ar_list[@]}
+    for ((jj=0 ; jj < el_list ; jj++ ))
+    do
+        path_cpack_log=${ar_list[jj]}
+        base_cpack_log=`basename ${path_cpack_log}`
+        echo "ardoc_process_results: Info: adding ${base_cpack_log} to combined ${ARDOC_CPACKLOG} file"
+        echo "========================================================================================" >> ${ARDOC_CPACKLOG}
+        echo "==========${base_cpack_log} LOGFILE=========" >> ${ARDOC_CPACKLOG}
+        echo "========================================================================================" >> ${ARDOC_CPACKLOG}
+        cat ${path_cpack_log} >> ${ARDOC_CPACKLOG}
+    done
+fi
+
+[[ -f ${ARDOC_EXTERNALSLOG} ]] && rm -f ${ARDOC_EXTERNALSLOG}
+touch ${ARDOC_EXTERNALSLOG}
+if [ ! -f ${ARDOC_EXTERNALSRELHOME}/cmake_config.log -a ! -f ${ARDOC_EXTERNALSRELHOME}/cmake_build.log ]; then
+echo "ardoc_process_results: Warning: externals build logfiles are not available, the documentation build configuration may need an adjustment" | tee ${ARDOC_EXTERNALSLOG}
+else
+[[ -f ${ARDOC_EXTERNALSRELHOME}/cmake_config.log ]] && cat ${ARDOC_EXTERNALSRELHOME}/cmake_config.log >> ${ARDOC_EXTERNALSLOG}
+[[ -f ${ARDOC_EXTERNALSRELHOME}/cmake_build.log ]] && cat ${ARDOC_EXTERNALSRELHOME}/cmake_build.log >> ${ARDOC_EXTERNALSLOG}
+fi
+if [ ! -f ${ARDOC_EXTERNALSRELHOME}/cmake_build.log ]; then
+  if [ "${ARDOC_PROJECT_NAME}" = "AthDataQuality" -o "${ARDOC_PROJECT_NAME}" = "DetCommon" ]; then
+    echo "========================================================================================" > ${ARDOC_EXTERNALSLOG}
+    echo "==========EXTERNALS WERE NOT BUILT FOR ${ARDOC_PROJECT_NAME} PROJECT (expected)=========" >> ${ARDOC_EXTERNALSLOG}
+    echo "========================================================================================" >> ${ARDOC_EXTERNALSLOG}
+  fi
+fi
+
+#
+# SET web accessible area for html files 
+export ARDOC_WEB_ACCESS_DIR=/afs/cern.ch/atlas/software/dist/gitwww
+#if [[ "${ARDOC_NIGHTLY_NAME}" =~ ^.*main.*AthGeneration.*$ || "${ARDOC_NIGHTLY_NAME}" =~ ^.*DetCommon.*$ || "${ARDOC_NIGHTLY_NAME}" =~ ^21\.2.*$  ]]; then
+  export ARDOC_WEB_ACCESS_DIR_ALT=/eos/atlas/atlascerngroupdisk/proj-ascig/software-www/build-logs/nightlywww
+#fi
+#
+# SET URL for ARDOC_WEB_ACCESS_DIR access
+#export ARDOC_HTTP=http://cern.ch/atlas-computing/links/distDirectory/gitwww
+export ARDOC_HTTP=http://atlas-sw-build-logs.web.cern.ch/nightlywww
+#
+# WORK AREA NOT SET HERE
+# export ARDOC_WORK_AREA="/build1/atnight/workarea_N_${ARDOC_PROJECT_RELNAME}"
+#
+# DOUBLE CHECK essential variables:
+[[ "$ARDOC_PROJECT_NAME" = "" ]] && echo "ardoc_process_results: ERROR: ARDOC_PROJECT_NAME is not set" && ${exitcomtool} 1
+[[ "$ARDOC_PROJECT_RELNAME" = "" ]] && echo "ardoc_process_results: ERROR: ARDOC_PROJECT_RELNAME is not set" && ${exitcomtool} 1
+[[ "$ARDOC_ARCH" = "" ]] && echo "ardoc_process_results: ERROR: ARDOC_ARCH is not set" && ${exitcomtool} 1
+[[ "$ARDOC_WEB_ACCESS_DIR" = "" ]] && echo "ardoc_process_results: ERROR: ARDOC_WEB_ACCESS_DIR is not set" && ${exitcomtool} 1
+[[ "$ARDOC_HTTP" = "" ]] && echo "ardoc_process_results: ERROR: ARDOC_HTTP is not set" && ${exitcomtool} 1
+[[ "$ARDOC_RELHOME" = "" ]] && echo "ardoc_process_results: ERROR: ARDOC_RELHOME is not set" && ${exitcomtool} 1
+#[[ ! -d  $ARDOC_RELHOME  ]] && echo "ardoc_process_results: ERROR: ARDOC_RELHOME $ARDOC_RELHOME does not exist" && ${exitcomtool} 1
+[[ "$ARDOC_SOURCEHOME" = "" ]] && echo "ardoc_process_results: ERROR: ARDOC_SOURCEHOME is not set" && ${exitcomtool} 1
+[[ ! -d  $ARDOC_SOURCEHOME && "${stage}" != "init" ]] && echo "ardoc_process_results: ERROR: ARDOC_SOURCEHOME $ARDOC_SOURCEHOME does not exist" && ${exitcomtool} 1
+[[ "$ARDOC_EPOCH" = "" ]] && echo "ardoc_process_results: ERROR: release epoch time is not defined" && ${exitcomtool} 1
+[[ "$MR_GITLAB_LINK" = "" ]] && echo "ardoc_process_results: WARNING: MR_GITLAB_LINK (link to GitLab merge request) is not set"
+dateString=`date +%Y-%m-%d-%H-%M -d@${ARDOC_EPOCH}`
+startTime=$ARDOC_EPOCH
+endTime=$ARDOC_EPOCH
+dirArdocHome=`dirname $ARDOC_HOME`
+export ARDOC_JOB_LOG=$dirArdocHome/job_logs/log_${ARDOC_SUFFIX_PREPEND_EXTENDED}_${ARDOC_PROJECT_RELNAME}_${stage}
+[[ ! -d  $dirArdocHome/job_logs ]] && mkdir $dirArdocHome/job_logs
+echo "ardoc_process_results: INFO: starting building docs for ${ARDOC_PROJECT_RELNAME} at $dateString, logfile $ARDOC_JOB_LOG" `date`
+echo "ardoc_process_results: INFO: starting building docs for ${ARDOC_PROJECT_RELNAME} at $dateString" `date` > $ARDOC_JOB_LOG
+echo "ardoc_process_results: INFO: stage ${stage}" >> $ARDOC_JOB_LOG
+
+export ARDOC_STARTTIME=$startTime
+export ARDOC_ENDTIME=$endTime
+export ARDOC_CONFIG_AREA="/afs/cern.ch/atlas/software/dist/ci/ardoc_config_area"
+export ARDOC_BUILD_FROM_SCRATCH="yes"
+export ARDOC_LOG_SCRATCH="yes"
+export ARDOC_HTTP_BUILD=$ARDOC_HTTP
+export ARDOC_GEN_CONFIG_AREA=$dirArdocHome/ardoc_local_gen_config_area_${ARDOC_SUFFIX_PREPEND_EXTENDED}_${ARDOC_PROJECT_RELNAME}
+[[ ! -d  ${ARDOC_GEN_CONFIG_AREA} ]] && mkdir ${ARDOC_GEN_CONFIG_AREA}
+export ARDOC_ORACLE_SCHEMA="ATLAS_NICOS"
+export ARDOC_NIGHTLY_ROLE='main'
+
+echo "ardoc_process_results: INFO: ARDOC preliminary env:" >> $ARDOC_JOB_LOG
+env | grep ARDOC >> $ARDOC_JOB_LOG
+echo "=============== end ARDOC preliminary env $stage" >> $ARDOC_JOB_LOG
+
+if [ "$exitcomtool" = "exit" ]; then
+  if [ "$stage" = "init" -o "$stage" = "all" -o "$stage" = "initandcancel" -o "$stage" = "initandabort" ]; then
+    echo "ardoc_process_results: INFO: initialization start:" `date`
+    echo "ardoc_process_results: INFO: initialization start:" `date` >> $ARDOC_JOB_LOG
+    if [ "$stage" = "initandcancel" ]; then     
+      ${ARDOC_HOME}/ardoc_job_ini --cancel >> $ARDOC_JOB_LOG 2>&1
+    elif [ "$stage" = "initandabort" ]; then 
+      ${ARDOC_HOME}/ardoc_job_ini --abort >> $ARDOC_JOB_LOG 2>&1
+    else
+      ${ARDOC_HOME}/ardoc_job_ini >> $ARDOC_JOB_LOG 2>&1
+    fi
+  fi
+  if [ "$stage" = "build" -o "$stage" = "buildandtest" -o "$stage" = "all" ]; then
+    echo "ardoc_process_results: INFO: starting processing ${stage} results:" `date`
+    echo "ardoc_process_results: INFO: starting processing ${stage} results:" `date` >> $ARDOC_JOB_LOG
+    export ARDOC_BUILD_FROM_SCRATCH="no"; export ARDOC_LOG_SCRATCH="no"
+    ${ARDOC_HOME}/ardoc_post_results --stage build >> $ARDOC_JOB_LOG 2>&1
+    ${ARDOC_HOME}/ardoc_post_results --stage co >> $ARDOC_JOB_LOG 2>&1
+    ${ARDOC_HOME}/ardoc_post_results --stage ext >> $ARDOC_JOB_LOG 2>&1
+    ${ARDOC_HOME}/ardoc_post_results --stage cb >> $ARDOC_JOB_LOG 2>&1 
+    ${ARDOC_HOME}/ardoc_post_results --stage cpack >> $ARDOC_JOB_LOG 2>&1   
+  fi
+  if [ "$stage" = "initandabort" ]; then
+       echo "ardoc_process_results: INFO: starting processing ${stage} results:" `date`
+    echo "ardoc_process_results: INFO: starting processing ${stage} results:" `date` >> $ARDOC_JOB_LOG
+    export ARDOC_BUILD_FROM_SCRATCH="no"; export ARDOC_LOG_SCRATCH="no"
+    ${ARDOC_HOME}/ardoc_post_results --stage build >> $ARDOC_JOB_LOG 2>&1
+    ${ARDOC_HOME}/ardoc_post_results --stage co >> $ARDOC_JOB_LOG 2>&1
+    ${ARDOC_HOME}/ardoc_post_results --stage ext >> $ARDOC_JOB_LOG 2>&1
+    ${ARDOC_HOME}/ardoc_post_results --stage cb >> $ARDOC_JOB_LOG 2>&1
+    ${ARDOC_HOME}/ardoc_post_results --stage cpack >> $ARDOC_JOB_LOG 2>&1
+    ${ARDOC_HOME}/ardoc_job_finish --abort >> $ARDOC_JOB_LOG 2>&1
+  fi
+  if [ "$stage" = "test" -o "$stage" = "buildandtest" -o "$stage" = "all" ]; then
+    echo "ardoc_process_results: INFO: starting processing test results:" `date`
+    echo "ardoc_process_results: INFO: starting processing test results:" `date` >> $ARDOC_JOB_LOG
+    export ARDOC_BUILD_FROM_SCRATCH="no"; export ARDOC_LOG_SCRATCH="no"
+    ${ARDOC_HOME}/ardoc_post_results --stage test >> $ARDOC_JOB_LOG 2>&1
+  fi
+  if [ "$stage" = "image" -o "$stage" = "all" ]; then
+    echo "ardoc_process_results: INFO: starting processing test results:" `date`
+    echo "ardoc_process_results: INFO: starting processing test results:" `date` >> $ARDOC_JOB_LOG
+    export ARDOC_BUILD_FROM_SCRATCH="no"; export ARDOC_LOG_SCRATCH="no"
+    ${ARDOC_HOME}/ardoc_post_results --stage image >> $ARDOC_JOB_LOG 2>&1
+  fi
+else
+export ARDOC_BUILD_FROM_SCRATCH="no"; export ARDOC_LOG_SCRATCH="no"
+fi
+echo "ardoc_process_results: INFO: ARDOC_JOB_LOG $ARDOC_JOB_LOG "
+echo "ardoc_process_results: INFO: ARDOC_HOME $ARDOC_HOME "
+echo "ardoc_process_results: INFO: work area(guessed) $dirArdocHome/ardoc_work_toparea/$ARDOC_PROJECT_RELNAME "
+echo "ardoc_process_results: INFO: ARDOC_RELHOME $ARDOC_RELHOME "
+echo "ardoc_process_results: INFO: ARDOC_SOURCEHOME $ARDOC_SOURCEHOME "
+${exitcomtool} 0
+

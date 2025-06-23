@@ -1,0 +1,25 @@
+#!/bin/sh
+function show_help() {
+    echo "ardoc_process_results_atlas-builder-2: Error: incorrect option(s)"
+}
+###########
+comname=`basename $0`
+if [ "$comname" = "ardoc_process_results_atlas-builder-2" ]; then
+exitcomtool="exit"
+else
+exitcomtool="return"
+fi
+
+this_dir=`dirname $0`
+parameters=$@
+export PATH=/home/atnight/bin_python3:${PATH}
+echo "ardoc_process_results_atlas-builder-2: Info: prepending PATH with /home/atnight/bin_python3"
+echo "ardoc_process_results_atlas-builder-2: Info: this is needed on ARM Alma9 machine to get python->python3"
+echo "ardoc_process_results_atlas-builder-2: Info: details: https://its.cern.ch/jira/browse/ATLINFR-5000 , ATLINFR-4917"
+echo "PATH = ${PATH}"
+python --version
+echo "ardoc_process_results_atlas-builder-2: Info: running ${this_dir}/ardoc_process_results ${parameters}"
+${this_dir}/ardoc_process_results ${parameters}
+
+${exitcomtool} 0
+

@@ -1,0 +1,56 @@
+#!/bin/sh
+#echo "ardoc_db_access"
+option=""
+step=""
+code=0
+notimeoutcontrol=0
+nochange=""
+nerr='N/A'
+nsuc='N/A'
+while [ $# -ne 0 ]; do
+        case $1 in
+            -b) option="begin";;
+            -e) option="end";;
+            -s) step=$2; shift;;
+            -c) code=$2; shift;;
+            --err) nerr=$2; shift;;
+            --suc) nsuc=$2; shift;;
+            --nochange) nochange=" --nochange";;
+            --notimeoutcontrol) notimeoutcontrol=1
+        esac
+        shift
+    done
+
+if [ "$step" = "" ]; then
+echo "ardoc_db_access: Warning: no step specified"
+exit 0 
+fi
+if [ "$option" = "" ]; then
+echo "ardoc_db_access: Warning: no option specified"
+exit 0
+fi
+
+step_lower=`echo $step | tr [:upper:] [:lower:]` 
+
+if [ "$option" = "begin" ]; then 
+   echo "===================================="
+   echo "===ardoc_db_access: SETTING BEGIN FOR $step_lower"
+   echo "===================================="
+   if [ "$notimeoutcontrol" -eq 0 ]; then
+     $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_jobstat.py -o $step_lower  
+   else
+     source $ARDOC_HOME/ardoc_oracle_setup.sh
+     python $ARDOC_HOME/ardoc_oracle_jobstat.py -o $step_lower
+   fi
+fi
+if [ "$option" = "end" ]; then 
+   echo "===================================="
+   echo "===ardoc_db_access: SETTING END FOR $step_lower , code ${code} ${nochange}"
+   echo "===================================="
+   if [ "$notimeoutcontrol" -eq 0 ]; then
+     $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_jobstat_new.py -o $step_lower -s ${code} --err ${nerr} --suc ${nsuc} ${nochange}
+   else
+     source $ARDOC_HOME/ardoc_oracle_setup.sh
+     python $ARDOC_HOME/ardoc_oracle_jobstat_new.py -o $step_lower -s ${code} --err ${nerr} --suc ${nsuc} ${nochange} 
+   fi 
+fi
