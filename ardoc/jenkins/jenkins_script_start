@@ -1,0 +1,38 @@
+#!/bin/sh
+###########
+# example of setting env variables and starting nicos documentation build
+# ATLAS git setup is required (setupATLAS; lsetup git)
+###########
+this_dir=`dirname $0`
+#
+# REPLACE two lines below with desired RELEASE NAME
+dateString=`date +%Y-%m-%d-%H-%M`
+export NICOS_PROJECT_RELNAME="MR-TEST-${dateString}"
+#
+# LINK to the corresponding merge requests in GitLab
+export MR_GITLAB_LINK="https://gitlab.cern.ch/atlas/aogt8/merge_requests/507"
+#
+# CHANGE platform name as needed
+export NICOS_ARCH="x86_64-slc6-gcc62-opt"
+#
+# SET paths to release build and source areas
+export MR_PATH_TO_SOURCE=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_nicos_test/source
+export MR_PATH_TO_BUILD=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_nicos_test/build
+#
+# SET paths to various log files
+export MR_PATH_TO_CHECKOUTLOG=/afs/cern.ch/atlas/software/dist/ci/testfiles/test_checkout.log
+export MR_PATH_TO_CONFBUILDLOG=/afs/cern.ch/atlas/software/dist/ci/testfiles/test_confbuild.log
+export MR_PATH_TO_EXTBUILDLOG=/afs/cern.ch/atlas/software/dist/ci/testfiles/test_extbuild.log
+export MR_PATH_TO_CONFTESTLOG=/afs/cern.ch/atlas/software/dist/ci/testfiles/te\
+st_config.log
+#
+# SET web accessible area for html files 
+export NICOS_WEB_ACCESS_DIR=/afs/cern.ch/atlas/software/dist/ci
+#
+# SET URL for NICOS_WEB_ACCESS_DIR access
+export NICOS_HTTP=http://cern.ch/atlas-computing/links/distDirectory/ci
+#
+# WORK AREA for nicos documentation builder
+work_area="/build1/atnight/workarea_${NICOS_PROJECT_RELNAME}"
+#
+${this_dir}/jenkins_script -w $work_area

@@ -1,0 +1,74 @@
+#!/usr/bin/env perl
+#
+# NICOS - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+# 
+# ----------------------------------------------------------
+# nicos_progress_informer
+# ----------------------------------------------------------
+#
+use Env;
+my $NICOS_HOME="$NICOS_HOME";
+my $NICOS_WEBDIR="$NICOS_WEBDIR";
+my $NICOS_PROJECT_HOME="$NICOS_PROJECT_HOME";
+my $NICOS_PROJECT_NAME="$NICOS_PROJECT_NAME";
+my $NICOS_PROJECT_RELNAME="$NICOS_PROJECT_RELNAME_COPY";
+my $NICOS_PROJECT_RELNUMB="$NICOS_PROJECT_RELNUMB_COPY";
+
+my $step=0;
+my $param=0;
+my $suffix="_${NICOS_PROJECT_RELNUMB}"; 
+if ( ${NICOS_PROJECT_RELNUMB} eq "" ) { $suffix=""; }
+
+if ($#ARGV >= 0) {$step=$ARGV[0];}
+if ($#ARGV >= 1) {$param=$ARGV[1];}
+
+my $progress_file="${NICOS_WORK_AREA}/nicos_progress_status";
+open(WRITEDATA,">$progress_file");
+print WRITEDATA "$step";
+close(WRITEDATA);
+
+my $outfile_status="${NICOS_WEBDIR}/status_rel${suffix}.js";
+my $outfile_date="${NICOS_WEBDIR}/date_rel${suffix}.js";
+
+open(WRITEDATA,">$outfile_status");
+print WRITEDATA "function status${suffix}()\{return ";
+$_=$step;
+SWITCH: {
+$_ == 0 && do { print WRITEDATA "'nightly started'\}";\
+system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_oracle_wrapper.sh 3 python $NICOS_HOME/nicos_oracle_reljobs.py >> \$genlogdir/nicos_general.logora 2>&1");\
+system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_db_access -b -s \"CONFIG\" -p \"$param\" >> \$genlogdir/nicos_general.logora 2>&1");\
+system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_db_access -e -s \"CONFIG\" >> \$genlogdir/nicos_general.logora 2>&1");\
+last SWITCH; };
+$_ == 1 && do { print WRITEDATA "'configuration in progress'\}";\
+system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_db_access -e -s \"TOOLINIT\" --nochange >> \$genlogdir/nicos_general.logora 2>&1");\
+last SWITCH; };
+$_ == 2 && do { print WRITEDATA "'checkout done'\}";\
+system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_oracle_wrapper.sh 3 python $NICOS_HOME/nicos_oracle_tags.py >> \$genlogdir/nicos_general.logora 2>&1");\
+last SWITCH; };
+$_ == 3 && do { print WRITEDATA "'make started'\}";\
+system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_db_access -e -s \"PROJECTCONF\" >> \$genlogdir/nicos_general.logora 2>&1");\
+last SWITCH; };
+$_ == 4 && do { print WRITEDATA "'make done, tests started'\}"; \
+system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_db_access_test -e -s \"BUILD\" >> \$genlogdir/nicos_general.logora 2>&1");\
+last SWITCH; };
+$_ == 44 && do { system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_oracle_wrapper.sh 3 python $NICOS_HOME/nicos_oracle_build_results.py --complete >> \$genlogdir/nicos_build.logora 2>&1");\
+last SWITCH; };
+$_ == 5 && do { print WRITEDATA "'kit build in progress'\}"; last SWITCH; };
+$_ == 6 && do { print WRITEDATA "'rpm build in progress'\}"; last SWITCH; };
+$_ == 7 && do { print WRITEDATA "'qa tests done'\}"; last SWITCH; };
+$_ == 8 && do { print WRITEDATA "'integrated tests done'\}"; \
+system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_db_access -e -s \"INT\" >> \$genlogdir/nicos_general.logora 2>&1");\
+last SWITCH; };
+$_ == 9 && do { print WRITEDATA "'kv done'\}"; last SWITCH; };
+$_ == 10 && do { print WRITEDATA "'done'\}"; \
+system("genlogdir=`dirname $NICOS_LOG`;$NICOS_HOME/nicos_db_access -e -s \"ERR\" >> \$genlogdir/nicos_general.logora 2>&1");\
+system("genlogdir=`dirname $NICOS_TESTLOG`;$NICOS_HOME/nicos_oracle_wrapper.sh 3 python $NICOS_HOME/nicos_oracle_results.py -c >> \$genlogdir/nicos_test_final.logora 2>&1");\
+last SWITCH; };
+print WRITEDATA "'UNAVAILABLE'\}";
+}
+close(WRITEDATA);
+
+
+
+

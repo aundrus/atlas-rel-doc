@@ -1,0 +1,220 @@
+#!/bin/sh
+#
+# NICOS - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+# 
+# ----------------------------------------------------------
+# nicos_job_doc
+# ----------------------------------------------------------
+#
+jid="NONE"
+#while [ $# -ne 0 ]; do
+#    case $1 in
+#         -b | --begin)     start_point=$2; shift;;
+#              --end)       end_step=$2; shift;;
+#         -s | --scratch)   from_scratch="yes";;
+#              --nocopy)    copy_steps="no";;  
+#         -r | --relnum)    relnum_fixed=$2; shift;;
+#         -* | --*)         show_help; exit 1;;
+#    esac
+#    shift
+#done
+
+comname=`basename $0`
+if [ "$comname" = "nicos_job_doc" ]; then
+exitcomjob="exit"
+else
+exitcomjob="return"
+fi
+
+if [ "${NICOS_HOME}" = "" ]; then
+echo "nicos_job: NICOS_HOME variable is not defined, "
+echo "           please set before running nicos jobs"
+eval ${exitcomjob} 1
+fi
+if [ "${NICOS_PROJECT_RELNAME}" = "" ]; then
+echo "nicos_job: NICOS_PROJECT_RELNAME variable is not defined, "
+echo "           please set before running nicos jobs"
+eval ${exitcomjob} 1
+fi
+export NICOS_PROJECT_RELNAME_COPY=$NICOS_PROJECT_RELNAME
+
+project_string=""
+[[ ${NICOS_PROJECT_NAME} != "" ]] && project_string=", PROJECT ${NICOS_PROJECT_NAME}"
+[[ ${NICOS_PROJECT_NUMBER} != "" ]] && project_string="${project_string}, SEQ. NUMBER ${NICOS_PROJECT_NUMBER}"
+echo "nicos_job: STARTING BUILDING DOCUMENTATION FOR RELEASE ${NICOS_PROJECT_RELNAME}${project_string}"
+
+rm -f /tmp/nicos_log* > /dev/null 2>&1
+tmp_log="/tmp/nicos_log_$$"
+tmp_env="/tmp/nicos_env_$$"
+env > $tmp_env
+#######STEP 0   CONFIG##########
+date_start_config=`date +"%Y-%m-%d %H:%M:%S"`
+NICOS_BYPASS="no"
+[[ "${NICOS_BYPASS_ENABLE}" = "yes" ]] && NICOS_BYPASS="yes" 
+export NICOS_BYPASS
+source ${NICOS_HOME}/nicos_config > ${tmp_log} 2>&1; stat=$?
+if [ "$stat" -ne 0 ]; then 
+echo "NICOS_LOG=" ${NICOS_LOG}
+echo "nicos_job:  NICOS failed at configuration" >> ${NICOS_LOG}; eval ${exitcomjob} ${stat}  
+fi
+  dsta=`date +"%Y-%m-%d %H:%M"`
+  echo $dsta > ${NICOS_WORK_AREA}/start_date
+  [[ -f ${NICOS_WORK_AREA}/end_date ]] && rm -f ${NICOS_WORK_AREA}/end_date
+  touch ${NICOS_WORK_AREA}/end_date
+
+#######    
+echo "DDDDDDDDDDDDDDD"
+cat ${tmp_log}           
+echo "DDDDDDDDDDDDDDA"
+env | grep NICOS
+echo "DDDDDDDDDDDDDDB"
+cat ${tmp_log} >> ${NICOS_LOG}
+###### 
+dirlog=`dirname $NICOS_LOG`
+dirtlog=`dirname $NICOS_TESTLOG`
+######
+#COPY cmake configuration file to NICOS_CONFBUILDLOG
+echo "COPYING $MR_PATH_TO_CONFBUILDLOG $NICOS_CONFBUILDLOG "
+[[ -f $MR_PATH_TO_CONFBUILDLOG ]] && cp -a $MR_PATH_TO_CONFBUILDLOG $NICOS_CONFBUILDLOG
+check_conf=""
+if [ "${NICOS_CONFBUILDLOG}" != "" -a -f ${NICOS_CONFBUILDLOG} ]; then
+check_conf=`${NICOS_HOME}/nicos_univ_errortester.pl --conf ${NICOS_CONFBUILDLOG}`
+fi
+if [ "$check_conf" != "" ]; then
+echo "nicos_job_doc: configuration build log contains problematic string:" >> ${NICOS_CONFBUILDLOG}
+echo "========>>  $check_conf" >> ${NICOS_CONFBUILDLOG}
+else
+echo "nicos_job_doc: configuration build log looks OK" >> ${NICOS_CONFBUILDLOG}
+fi
+
+#COPY checkout logfile to NICOS_CHECKOUTLOG
+echo "COPYING $MR_PATH_TO_CHECKOUTLOG $NICOS_CHECKOUTLOG "
+[[ -f $MR_PATH_TO_CHECKOUTLOG ]] && cp -a $MR_PATH_TO_CHECKOUTLOG $NICOS_CHECKOUTLOG
+check_checkout=""
+if [ "${NICOS_CHECKOUTLOG}" != "" -a -f ${NICOS_CHECKOUTLOG} ]; then
+check_checkout=`${NICOS_HOME}/nicos_univ_errortester.pl --checkout ${NICOS_CHECKOUTLOG}`
+fi
+if [ "$check_checkout" != "" ]; then
+echo "nicos_job_doc: checkout log contains problematic string:" >> ${NICOS_CHECKOUTLOG}
+echo "========>>  $check_checkout" >> ${NICOS_CHECKOUTLOG}
+echo $check_checkout | grep -i "timeout" >& /dev/null; stat_tm=$?
+if [ "$stat_tm" -eq 0 ]; then
+hnm=`hostname`
+body=${dirlog}/timeout_message_body
+MAILTO="undrus@bnl.gov"
+printf " ===========================================================\n" > $body
+printf " GIT TIMEOUT IN ${NICOS_CHECKOUTLOG} on ${hnm} \n" >> $body
+printf " ===========================================================\n">> $body
+mail -s "CI GIT TIMEOUT PB: machine ${hnm}" "$MAILTO"  < ${body}
+fi
+else
+echo "nicos_job_doc: configuration build log looks OK" >> ${NICOS_CHECKOUTLOG}
+fi
+
+#COPY AtlasExternals build log file to NICOS_INSTBUILDLOG                                                             
+echo "COPYING $MR_PATH_TO_EXTBUILDLOG $NICOS_INSTBUILDLOG "
+[[ -f $MR_PATH_TO_EXTBUILDLOG ]] && cp -a $MR_PATH_TO_EXTBUILDLOG $NICOS_INSTBUILDLOG
+check_inst=""
+if [ "${NICOS_INSTBUILDLOG}" != "" -a -f ${NICOS_INSTBUILDLOG} ]; then
+check_inst=`${NICOS_HOME}/nicos_univ_errortester.pl --inst ${NICOS_INSTBUILDLOG}`
+fi
+if [ "$check_inst" != "" ]; then
+echo "nicos_job_doc: instbuild log contains problematic string:" >> ${NICOS_INSTBUILDLOG}
+echo "========>>  $check_inst" >> ${NICOS_INSTBUILDLOG}
+else
+echo "nicos_job_doc: configuration build log looks OK" >> ${NICOS_INSTBUILDLOG}
+fi
+
+[[ -f $dirtlog/nicos_test_final.logora ]] && rm -f $dirtlog/nicos_test_final.logora
+[[ -f $dirlog/nicos_general.logora ]] && rm -f $dirlog/nicos_general.logora
+[[ -f $dirlog/nicos_build.logora ]] && rm -f $dirlog/nicos_build.logora
+[[ -f $dirtlog/nicos_test.logora ]] && rm -f $dirtlog/nicos_test.logora
+touch $dirtlog/nicos_test_final.logora
+touch $dirlog/nicos_general.logora
+touch $dirlog/nicos_build.logora
+touch $dirtlog/nicos_test.logora
+
+if [ "${NICOS_PROJECT_NUMBER}" = "" -o "${NICOS_PROJECT_NUMBER}" -eq 0 -o "${NICOS_PROJECT_NUMBER}" -eq 1 ]; then 
+  echo "nicos_job_doc: START nicos_oracle_starter.sh -n ${NICOS_NIGHTLY_NAME} -c ${NICOS_ARCH}" >> $dirlog/nicos_general.logora
+  ${NICOS_HOME}/nicos_oracle_starter.sh -n ${NICOS_NIGHTLY_NAME} -c ${NICOS_ARCH} >> $dirlog/nicos_general.logora 2>&1
+  echo "nicos_job_doc: END nicos_oracle_starter.sh -n ${NICOS_NIGHTLY_NAME} -c ${NICOS_ARCH}" >> $dirlog/nicos_general.logora
+fi
+
+python $NICOS_HOME/nicos_container_extractor_monol.py >> ${NICOS_LOG} 2>&1
+
+${NICOS_HOME}/nicos_progress_informer 0 "$date_start_config"
+
+$NICOS_HOME/nicos_db_access -b -s "TOOLINIT" >> $dirlog/nicos_general.logora 2>&1
+${NICOS_HOME}/nicos_progress_informer 1
+$NICOS_HOME/nicos_db_access -b -s "CHECKOUT" >> $dirlog/nicos_general.logora 2>&1
+${NICOS_HOME}/nicos_progress_informer 2
+$NICOS_HOME/nicos_db_access -b -s "PROJECTCONF" >> $dirlog/nicos_general.logora 2>&1
+${NICOS_HOME}/nicos_progress_informer 3
+echo "nicos_job_doc: PYTHONPATH = $PYTHONPATH"
+echo "nicos_job_doc: PYTHONPATH = $PYTHONPATH" >> $dirlog/nicos_build.logora
+$NICOS_HOME/nicos_db_access_test -b -s "BUILD" >> $dirlog/nicos_build.logora 2>&1
+
+$NICOS_HOME/nicos_oracle_wrapper.sh 3 python $NICOS_HOME/nicos_oracle_build_results.py >> $dirlog/nicos_build.logora 2>&1 
+
+dbuildlog=`dirname $NICOS_BUILDLOG`
+$NICOS_HOME/nicos_cmake_loghandler_new.pl >> ${NICOS_LOG} 2>&1
+$NICOS_HOME/nicos_cmake_loghandler_new_2ndloop.pl -l $dbuildlog/nicos_build.loglog >> ${NICOS_LOG} 2>&1
+python $NICOS_HOME/nicos_testdb_generator.py >> ${NICOS_TESTLOG} 2>&1
+
+${NICOS_HOME}/nicos_univ_progress_informer --phase 1 --step checkout --check "$check_checkout" >> ${NICOS_CHECKOUTLOG} 2>&1
+${NICOS_HOME}/nicos_univ_progress_informer --phase 1 --step conf --check "$check_conf" >> ${NICOS_CONFBUILDLOG} 2>&1
+${NICOS_HOME}/nicos_univ_progress_informer --phase 1 --step inst --check "$check_inst" >> ${NICOS_INSTBUILDLOG} 2>&1
+
+${NICOS_HOME}/nicos_progress_informer 4
+#$NICOS_HOME/nicos_db_access -e -s "CO"
+#$NICOS_HOME/nicos_db_access -e -s "CB" 
+#$NICOS_HOME/nicos_db_access -e -s "IB"
+
+$NICOS_HOME/nicos_db_access -b -s "ERR" >> $dirlog/nicos_general.logora 2>&1
+$NICOS_HOME/nicos_oracle_wrapper.sh 3 python $NICOS_HOME/nicos_oracle_results.py >> $dirtlog/nicos_test.logora 2>&1
+
+if [ "$NICOS_STATIC_HTML" == "yes " ]; then
+  ${NICOS_HOME}/nicos_webpage --nomail --statichtml >> ${NICOS_LOG} 2>&1; stat=$?
+else
+  ${NICOS_HOME}/nicos_webpage --nomail >> ${NICOS_LOG} 2>&1; stat=$?
+fi
+
+$NICOS_HOME/nicos_oracle_wrapper.sh 3 python $NICOS_HOME/nicos_oracle_results.py -c >> $dirtlog/nicos_test.logora 2>&1
+
+${NICOS_HOME}/nicos_progress_informer 44
+${NICOS_HOME}/nicos_progress_informer 10
+
+#dir_dict=`dirname $CI_RESULTS_DICT`
+#if [ "${dir_dict}" != "" ]; then
+#if [ "${PYTHONPATH}" = "" ]; then
+#   export PYTHONPATH=${dir_dict}
+#else
+#   export PYTHONPATH=${PYTHONPATH}:${dir_dict}
+#fi
+#fi
+${NICOS_HOME}/nicos_oracle_wrapper_pythonpath.sh 2 python $NICOS_HOME/nicos_oracle_update_jobs_table.py >> $dirlog/nicos_general.logora 2>&1
+python ${NICOS_HOME}/nicos_process_oracle_results.py >> $dirlog/nicos_general.logora 2>&1
+${NICOS_HOME}/nicos_oracle_wrapper.sh 2 python ${NICOS_HOME}/nicos_oracle_hbeat.py --end >> $dirlog/nicos_general.logora 2>&1
+
+if [ "$stat" -ne 0 ]; then 
+echo "nicos_job:  NICOS failed while analysing error or generating web pages"; 
+##eval ${exitcomjob} 1
+fi
+date +"%Y-%m-%d %H:%M" > ${NICOS_WORK_AREA}/end_date
+
+if [ "$stat" -ne 0 ]; then
+echo "nicos_job:  NICOS failed while analysing error or generating web pages";
+fi
+
+
+
+
+
+
+
+
+
+
+
+

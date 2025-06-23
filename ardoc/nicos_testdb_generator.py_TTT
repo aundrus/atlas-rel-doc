@@ -1,0 +1,96 @@
+#!/usr/bin/env python2
+import sys
+import re,time,datetime
+import string
+import os, shutil
+
+today = datetime.datetime.now()
+today_f=datetime.datetime.strftime(today,'%Y-%m-%d %H:%M:%S')
+if os.environ.has_key('NICOS_TESTLOG') :
+    testlog=os.environ['NICOS_TESTLOG']
+    testlogdir=os.path.dirname(testlog)
+else :
+    print "nicos_testdb_generator: Error: NICOS_TESTLOG is not defined"
+    sys.exit(1)
+if os.environ.has_key('NICOS_HOME') :
+    nicos_home=os.environ['NICOS_HOME']
+else :
+    print "nicos_testdb_generator: Error: NICOS_HOME is not defined"
+    sys.exit(1)
+
+print "nicos_testdb_generator: Info: starting . . . ",today_f
+
+if os.environ.has_key('NICOS_TEST_DBFILE_GEN') :
+    testdb_gen=os.environ['NICOS_TEST_DBFILE_GEN']
+else :
+    print "nicos_testdb_generator: Error: NICOS_TEST_DBFILE_GEN is not defined"
+    sys.exit(1)
+dbfileres=open(testdb_gen, 'w')
+dbfileres.write("")
+dbfileres.close()
+if os.environ.has_key('MR_PATH_TO_CONFTESTLOG') :
+    configtestlog=os.environ['MR_PATH_TO_CONFTESTLOG']
+else :
+    print "nicos_testdb_generator: Warning: MR_PATH_TO_CONFTESTLOG is not defined"
+    sys.exit(0)
+nicos_project_name=os.environ.get('NICOS_PROJECT_NAME','')
+
+if not os.path.isfile(configtestlog):
+    print "nicos_testdb_generator: Warning: CONF TEST LOG",configtestlog, "does not exist"
+lines_db=[]
+try:
+    mf=open(configtestlog)
+    lines_db = mf.readlines()
+    mf.close()
+except:
+    lines_db=[]
+
+dbfileres=open(testdb_gen, 'w')
+for x in lines_db:
+    line1=string.strip(x)
+    if len(re.sub(r'\s+','',line1)) == 0 : continue
+    fill=re.split(r':',line1)
+    testname1=string.strip(fill[0])
+    testname=re.sub(r'\s+','-',testname1) 
+    testpath='' 
+    if len(fill) <= 1 : continue  
+    testpath=string.strip(':'.join(fill[1:]))
+    if nicos_project_name != '' :
+        if not re.match('^.*/'+nicos_project_name+'/.*$',testpath) : continue
+    xmlf=testname+'.xml'
+    testname_ext="__"+testname+"__"+testname+'__m.sh'
+    testprior="Release"
+    if os.environ.has_key('SOURCE_DIR'):
+      source_dir=os.environ['SOURCE_DIR']
+      optional_dir=source_dir+os.sep+'OptionalTests'
+      print "nicos_testdb_generator: Info: optional test dir : ",optional_dir 
+      if os.path.isdir(optional_dir):
+        print "nicos_testdb_generator: Info: optional test dir : ",optional_dir
+        if re.match('HelloWorld.*$',testname): testprior="Optional"
+        if re.match('Trigger_MT.*$',testname): testprior="Optional"
+        if re.match('Tier0Tests.*$',testname): testprior="Optional" 
+        print "nicos_testdb_generator: Info: optional test dir exists, test name ",testname,", priority ",testprior 
+    testdir=testprior+'Tests/test/' 
+    gen_testdir='N/A'
+    suite='CI'
+    testtime='100'
+    container=testprior+'Tests'
+    addr='nomail@cern.ch'  
+    linew=xmlf+' '+testname_ext+' '+testdir+' '+gen_testdir+' '+suite+' '+testtime+' '+container+' '+addr
+    print "nicos_testdb_generator: Info: writing: ",linew 
+    dbfileres.write(linew+'\n')
+    if os.path.isfile(testpath):
+        copypath=testlogdir+os.sep+container+'___'+testname+'__'+testname+'__m.loglog'
+        print "nicos_testdb_generato: Info: copying: ",testpath, copypath
+        shutil.copy2(testpath, copypath)
+        if re.search('unit-test',testname,re.IGNORECASE):
+            print "nicos_testdb_generato: modifying file", copypath
+            os.system(nicos_home+os.sep+'unit_test_log_processor.pl '+copypath)
+    else:
+        print "nicos_testdb_generato: Warning: test log does not exist: ",testpath 
+dbfileres.close()
+    
+sys.exit(0)
+
+
+                                      

@@ -1,0 +1,179 @@
+#!/bin/sh
+#
+# NICOS - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+# 
+# ----------------------------------------------------------
+# nicos_webpage
+# ----------------------------------------------------------
+#
+function rsync_loop () {
+    arg=$1
+    quant=60
+    LIMIT=10
+    a=1
+    r_code_prev=0
+    while [ "$a" -le $LIMIT ]
+    do
+        echo "nicos_webpage: info: running iteration ${a} for rsync ${arg}" $(date)
+        ((a++))
+        rsync ${arg}; r_code=$?
+        if [ "${r_code}" -eq 0 ]; then
+            echo "nicos_webpage: info: successful iteration $((a-1)) for rsync ${arg}" $(date)
+            if [ "${a}" -gt 2 ]; then
+		mail -s "CI EOS log copy: $((a-1)) iterations on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target: ${a} iterations, previous error code ${r_code_prev}, on $(date)"
+            fi
+	    break
+	else
+	    r_code_prev="${r_code}"
+        fi
+        echo "nicos_webpage: warning: rsync error code (${arg})" $(date)
+        echo "nicos_webpage: info: sleeping $((a-1))"
+        sleep $quant
+        if [ "$a" -gt "$LIMIT" ]; then
+            echo "nicos_webpage: persistent error ${r_code} for rsync ${arg}" $(date)
+            break
+        fi
+    done
+    return ${r_code}
+}
+noerrorhandler=0
+phase=0
+nomail=0
+nobuildmail=0
+notestmail=0
+statichtml=0
+jid="NONE"
+while [ $# -ne 0 ]; do
+    case $1 in
+         --clean)      phase=1;;
+         --noerror)    phase=0; noerrorhandler=1;;
+         --statichtml) statichtml=1;;
+         --jid)        jid=$2; shift;;
+    esac
+    shift
+done
+
+echo "------------------------------------------------------------"
+echo "   Starting NICOS web pages generation"
+echo "------------------------------------------------------------"
+####
+source ${NICOS_WORK_AREA}/nicos_webpage_gen
+####
+
+array_proj=(${NICOS_PROJECT_ARRAY})
+el_proj=${#array_proj[@]}
+last_el_proj=$((${el_proj} - 1))
+sign_first=0
+sign_last=0
+if [ "${array_proj[0]}" = "" -o "${array_proj[0]}" = "$NICOS_PROJECT_NAME" ]; then
+sign_first=1
+fi
+
+if [ "${last_el_proj}" -lt 0 ]; then
+sign_last=1
+elif [ "${array_proj[${last_el_proj}]}" = "" -o "${array_proj[${last_el_proj}]}" = "$NICOS_PROJECT_NAME" ]; then
+sign_last=1
+fi
+
+if [ "$phase" -eq 1 ]; then
+##
+##CLEAN
+if [ -f $NICOS_WORK_AREA/nicos_prepage ]; then rm -f $NICOS_WORK_AREA/nicos_prepage; fi
+if [ -f $NICOS_WORK_AREA/nicos_testprepage ]; then rm -f $NICOS_WORK_AREA/nicos_testprepage; fi
+if [ -f $NICOS_WORK_AREA/nicos_loghandler_report ]; then rm -f $NICOS_WORK_AREA/nicos_loghandler_report; fi
+touch $NICOS_WORK_AREA/nicos_prepage
+touch $NICOS_WORK_AREA/nicos_testprepage
+touch $NICOS_WORK_AREA/nicos_loghandler_report
+##
+else # if [ "$phase" -eq 1 ]; then
+##
+##REG
+# It was noticed on CentOS7 that /usr/sbin:/usr/local/sbin is omitted from Jenkins shell. SquashFS executables are in /usr/sbin. Below is the remedy
+if [[ ":$PATH:" =~ :/usr/local/sbin ]]; then
+    echo "INFO: /usr/local/sbin is already in ${PATH}"
+else
+    export PATH=${PATH}:/usr/local/sbin
+    echo "INFO: /usr/local/sbin is appended to ${PATH}"    
+fi
+if [[ ":$PATH:" =~ :/usr/sbin ]]; then
+    echo "INFO: /usr/sbin is already in ${PATH}"
+else
+    export PATH=${PATH}:/usr/sbin
+    echo "INFO: /usr/sbin is appended to ${PATH}"
+fi
+#    
+export NICOS_PROJECT_RELNAME_COPY=$NICOS_PROJECT_RELNAME
+${NICOS_HOME}/nicos_lock --lock --dir ${NICOS_WEBDIR}
+${NICOS_HOME}/nicos_errorhandler --jid $jid
+[[ "$statichtml" -eq 1 ]] && ${NICOS_HOME}/nicos_pagemaker.pl
+${NICOS_HOME}/nicos_lock --unlock --dir ${NICOS_WEBDIR}
+if [ "$NICOS_WEB_ACCESS_DIR_ALT" != "" ]; then
+  hname=$(hostname | cut -d. -f1)
+  copy_origin="$NICOS_WEBDIR"
+  copy_target="$NICOS_WEB_ACCESS_DIR_ALT/${NICOS_NIGHTLY_GROUP}WebArea/nicos_web_area${NICOS_SUFFIX}"
+  [[ ! -d $copy_target ]] && mkdir -p $copy_target
+  rsync_params="-uvrlpt $copy_origin/ $copy_target"
+#  echo "nicos_webpage: Info: running alt rsync -uvrlpt $copy_origin/ $copy_target" $(date)
+  epoch_start=$(date +%s)
+  rsync_loop "${rsync_params}"; st_rsync=$?
+#  rsync -uvrlpt $copy_origin/ $copy_target; st_rsync=$?
+  epoch_end=$(date +%s)
+  epoch_diff=$((epoch_end - epoch_start))
+  fname=$copy_target/copy_time_stamp.txt
+  strng="COPY ON ${hname}, process $$"
+  echo ${strng} > ${fname}; st_eos21=$?
+  grep -q "${strng}" ${fname}; st_eos22=$?
+  if [ "${st_rsync}" -eq 0 -a "${st_eos21}" -eq 0 -a "${st_eos22}" -eq 0 ]; then
+    echo "INFO: EOS COPY QUALITY CHECK PASSED"
+#    mail -s "CI EOS log copy success on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s,success on $(date)" 
+  else
+    echo "WARNING: EOS COPY QUALITY CHECK FAILED: rsync status ${st_rsync}, small file write/read: (${fname} ${st_eos21} ${st_eos22})"
+    mail -s "CI EOS log copy failure on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s, error codes ${st_rsync} ${st_eos21} ${st_eos22} on $(date)"  
+  fi
+  cp ${NICOS_HOME}/index_directory_list.php ${copy_target}/index.php
+  echo "nicos_webpage: Info: END running alt rsync -uvrlpt $copy_origin/ $copy_target ${st_rsync} ${st_eos21} ${st_eos22} runtime ${epoch_diff} s" $(date)
+  buildlogarea="${copy_target}/NICOS_Log_${NICOS_PROJECT_RELNAME_COPY}"
+  testlogarea="${copy_target}/NICOS_TestLog_${NICOS_PROJECT_RELNAME_COPY}"
+  for logarea in "${buildlogarea}" "${testlogarea}"
+  do		 
+    echo "nicos_webpage: Info: STARTING filling logarea: ${logarea}"
+    if [ -d ${logarea} ]; then
+      echo "nicos_webpage: Info: running mv ${logarea} ${logarea}_tmp" 
+      mv ${logarea} ${logarea}_tmp; st_sq01=$?
+      echo "nicos_webpage: Info: running eos squash new ${logarea}"
+      eos squash new ${logarea}; st_sq02=$?
+      echo "nicos_webpage: Info: running rsync -uvrlpt ${logarea}_tmp/ ${logarea}"
+      rsync_params="-uvrlpt ${logarea}_tmp/ ${logarea}"; st_sq03=$?
+      rsync_loop "${rsync_params}"; st_sq03=$?
+      echo "nicos_webpage: Info: running eos squash pack ${logarea}"
+      eos squash pack ${logarea}; st_sq04=$?
+      st_sqsum=0
+      [[ "${st_sq01}" != 0 || "${st_sq02}" != 0 || "${st_sq03}" != 0 || "${st_sq04}" != 0 ]] && st_sqsum=1 
+      if [ "${st_sqsum}" -eq 0 ]; then
+         echo "INFO: SquashFS archive was successfully created on $(date)"
+#         mail -s "SquashFS archive was successfully created on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $logarea SquashFS archive success on $(date)"
+         echo "INFO: removing ${logarea}_tmp"
+         rm -rf ${logarea}_tmp 
+      else
+         echo "WARNING: SquashFS archive creation failed on $(date), error codes ${st_sq01}, ${st_sq02}, ${st_sq03}, ${st_sq04}"
+         mail -s "SquashFS archive creation failed on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $logarea, SquashFS error codes ${st_sq01}, ${st_sq02}, ${st_sq03}, ${st_sq04} on $(date)"
+      fi 
+    fi
+    echo "nicos_webpage: Info: END filling logarea: ${logarea}"
+  done
+fi
+if [ "$NICOS_WEB_ACCESS_DIR" != "" ]; then
+  copy_origin="$NICOS_WEBDIR"
+  copy_target="$NICOS_WEB_ACCESS_DIR/${NICOS_NIGHTLY_GROUP}WebArea/nicos_web_area${NICOS_SUFFIX}" 
+  [[ ! -d $copy_target ]] && mkdir -p $copy_target
+  echo "nicos_webpage: Info: running rsync -uvrlpt $copy_origin/ $copy_target" $(date)
+  rsync -uvrlpt $copy_origin/ $copy_target
+  echo "nicos_webpage: Info: END running rsync -uvrlpt $copy_origin/ $copy_target" $(date)
+fi
+
+##
+fi #[ "$phase"
+
+
+

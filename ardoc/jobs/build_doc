@@ -1,0 +1,84 @@
+#!/bin/sh
+#
+# NICOS - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+#
+# ----------------------------------------------------------
+# build_project_release : name says it all
+# ----------------------------------------------------------
+#
+function show_help() {
+    echo "Usage: build_doc \\"
+    echo "-n <nightly branch name> [other options]"
+}
+ 
+export NICOS_HOME="/afs/cern.ch/atlas/software/dist/ci/nicos_doc_builder"
+export NICOS_EPOCH=`date +%s.%N`
+export NICOS_MASTER_EPOCH=$NICOS_EPOCH
+dateString=`date +%Y-%m-%d-%H-%M -d@${NICOS_EPOCH}`
+nightlyName="21.0.X-CI"
+release="MR-${dateString}"
+arch="x86_64-slc6-gcc49-opt"
+pathToSource=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_nicos_test/source
+pathToBuild=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_nicos_test/build
+startTime=$NICOS_EPOCH
+endTime=$NICOS_EPOCH
+comname=`basename $0`
+if [ "$comname" = "build_doc" ]; then
+exitcomtool="exit"
+else
+exitcomtool="return"
+fi
+
+#while [ $# -ne 0 ]; do
+#    case $1 in
+#         -r | --relnum)    release=$2; shift;;
+#         -p | --project)   project_req=$2; shift;;
+#              --local)     LOCAL_AREA=$2; shift;;
+#         -* | --*)         show_help; eval ${exitcomtool} 1;;
+#    esac
+#    shift
+#done
+
+export NICOS_NIGHTLY_NAME=$nightlyName
+export NICOS_NIGHTLY_GROUP="CI"
+export NICOS_ARCH=$arch
+export NICOS_RELHOME=$pathToBuild
+## just in case: NICOS_PROJECT_HOME should not be used anymore...
+export NICOS_PROJECT_HOME=$NICOS_RELHOME
+export NICOS_SOURCEHOME=$pathToSource
+export NICOS_STARTTIME=$startTime
+export NICOS_ENDTIME=$endTime
+export NICOS_COMMON_CONFIG_AREA="/afs/cern.ch/atlas/software/dist/ci/nicos_config_area_doc"
+export NICOS_CONFIG_AREA=""
+export NICOS_PROJECT_NAME="Athena"
+export NICOS_PROJECT_RELNAME=$release
+export NICOS_BUILD_FROM_SCRATCH="yes"
+export NICOS_LOG_SCRATCH="yes"
+export NICOS_HTTP=http://cern.ch/atlas-computing/links/distDirectory/ci
+export NICOS_HTTP_BUILD=$NICOS_HTTP
+#FOR ORACLE SCRIPTS COMPATIBILITY
+export NICOS_GEN_CONFIG_AREA=$NICOS_COMMON_CONFIG_AREA
+export NICOS_ATLAS_RELEASE='21.0.0'
+export NICOS_ATLAS_ALT_RELEASE='21.0.0'
+export NICOS_ORACLE_SCHEMA="ATLAS_NICOS"
+export NICOS_NIGHTLY_ROLE='master'
+# END FOR ORACLE SCRIPTS COMPATIBILITY
+
+export NICOS_SUFFIX_PREPEND=` echo ${NICOS_NIGHTLY_NAME} | sed 's/[^a-zA-Z0-9_]//g'`
+suff1=`/bin/sh -c :;(export NICOS_PROJECT_NAME="PRJ"; unset NICOS_SUFFIX; ${NICOS_HOME}/nicos_project_suffix_creator.pl)`
+suff2=`/bin/sh -c :;(export NICOS_PROJECT_NAME="$proj"; unset NICOS_SUFFIX; ${NICOS_HOME}/nicos_project_suffix_creator.pl)`
+suff=`echo $suff1 | sed 's/PRJ//'`
+
+echo "nicos_job_doc: INFO: NICOS preliminary env:"
+env | grep NICOS
+echo "=============== end NICOS preliminary env"
+
+if [ "$exitcomtool" = "exit" ]; then
+${NICOS_HOME}/nicos_job_doc
+else
+export NICOS_BUILD_FROM_SCRATCH="no"
+export NICOS_LOG_SCRATCH="no"
+fi
+
+${exitcomtool} 0

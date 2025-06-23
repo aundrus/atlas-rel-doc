@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# NICOS - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+# 
+# ----------------------------------------------------------
+# nicos_errorhandler
+# ----------------------------------------------------------
+#
+jid="NONE"
+while [ $# -ne 0 ]; do
+    case $1 in
+         --jid) jid=$2; shift;;
+    esac
+    shift
+done
+
+DD=`date`
+echo "------------------------------------------------------------"
+echo "   Starting NICOS error analysis $DD"
+echo "------------------------------------------------------------"
+prevdir=`pwd`
+
+export NICOS_PROJECT_RELNAME_COPY=$NICOS_PROJECT_RELNAME
+if [ ! -f $NICOS_WORK_AREA/nicos_loghandler_report ]; then touch $NICOS_WORK_AREA/nicos_loghandler_report; fi
+cd ${NICOS_RELHOME}/${NICOS_PROJECTBUILD_DIR}
+source ${NICOS_WORK_AREA}/nicos_errorhandler_gen; stat=$?
+if [ "$stat" -ne 0 ]; then exit ${stat}; fi
+cd ${NICOS_RELHOME}/${NICOS_PROJECTBUILD_DIR}
+
+export NICOS_MAIL="no"
+export NICOS_MAIL_UNIT_TESTS="no"
+export NICOS_MAIL_INT_TESTS="no"
+export NICOS_MAIL_QA_TESTS="no"
+
+sffx="_${NICOS_PROJECT_RELNUMB_COPY}"
+if [ "${NICOS_PROJECT_RELNUMB_COPY}" = "" ]; then sffx=""; fi
+
+${NICOS_HOME}/nicos_errorhandler.pl; stat=$?
+
+cd ${prevdir}
+exit $stat
+
+
+
+
+
+
+
