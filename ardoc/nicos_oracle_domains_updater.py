@@ -15,34 +15,34 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 #print ("Oracle client: " + str(cx_Oracle.clientversion()).replace(', ','.'))
 hostname1=socket.gethostname(); hostname=re.split(r'\.',hostname1)[0]
 home=""
-nname=""; paname=""; nicos_arch=""
+nname=""; paname=""; ardoc_arch=""
 mr_id=""; mr_iid=""; ci_results_file=""
 if 'HOME' in os.environ : home=os.environ['HOME']
-oracle_schema=os.environ.get('NICOS_ORACLE_SCHEMA','ATLAS_NICOS').strip()
-nicos_gen_config_area=os.environ.get('NICOS_GEN_CONFIG_AREA','')
-projn=os.environ.get('NICOS_PROJECT_NAME','')
-nicos_home=os.environ.get('NICOS_HOME','')
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
+ardoc_gen_config_area=os.environ.get('ARDOC_GEN_CONFIG_AREA','')
+projn=os.environ.get('ARDOC_PROJECT_NAME','')
+ardoc_home=os.environ.get('ARDOC_HOME','')
 local_work_area=''
-if nicos_home != '':
-    local_work_area_base=os.path.basename(nicos_home)
+if ardoc_home != '':
+    local_work_area_base=os.path.basename(ardoc_home)
     if local_work_area_base == '':
-        local_work_area_1=os.path.dirname(nicos_home)
+        local_work_area_1=os.path.dirname(ardoc_home)
         local_work_area=os.path.dirname(local_work_area_1) 
     else:
-        local_work_area=os.path.dirname(nicos_home)
-nightly_name=os.environ.get('NICOS_NIGHTLY_NAME','N/A')
-nicos_project_relname=os.environ.get('NICOS_PROJECT_RELNAME','N/A')
-nicos_arch=os.environ.get('NICOS_ARCH','')
+        local_work_area=os.path.dirname(ardoc_home)
+nightly_name=os.environ.get('ARDOC_NIGHTLY_NAME','N/A')
+ardoc_project_relname=os.environ.get('ARDOC_PROJECT_RELNAME','N/A')
+ardoc_arch=os.environ.get('ARDOC_ARCH','')
 mr_id=os.environ.get('gitlabMergeRequestId','')
 mr_iid=os.environ.get('gitlabMergeRequestIid','')
 mr_tbr=os.environ.get('gitlabTargetBranch','')
 ts_now = datetime.datetime.now()
-t_epoch=os.environ.get('NICOS_EPOCH','')
+t_epoch=os.environ.get('ARDOC_EPOCH','')
 ci_results_file=os.environ.get('CI_RESULTS_DICT','') 
 if projn == "":
     logging.warn("nicos_oracle_domains_updater.py: Error: PROJECT NAME is not defined")
     sys.exit(1)
-if nicos_arch == "":
+if ardoc_arch == "":
     logging.warn("nicos_oracle_domains_updater.py: Error: ARCHITECTURE (\"NICOS_ARCH\" var) is not defined")
     sys.exit(1)
 if mr_id == "" :
@@ -98,7 +98,7 @@ if t_epoch != '':
     ts=datetime.datetime.fromtimestamp(fdtt)
 relnstamp=ts.strftime("%Y-%m-%dT%H%M")
 #RELID NID NAME TYPE TCREL TCRELBASE URL2LOG
-arch_a=re.split(r'\-',nicos_arch)
+arch_a=re.split(r'\-',ardoc_arch)
 arch=arch_a[0]
 osys=arch_a[1]
 comp=arch_a[2]
@@ -113,7 +113,7 @@ accnt,pwf,clust=lnea[0:3]
 #print "XXXX",accnt,pwf,clust
 #
 jid_res=''
-fjid=nicos_gen_config_area+os.sep+'jobid.txt'
+fjid=ardoc_gen_config_area+os.sep+'jobid.txt'
 if os.path.isfile(fjid) :
     f=open(fjid, 'r')
     jid_res=f.readline()

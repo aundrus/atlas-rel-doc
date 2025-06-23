@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
 #                                                                             
-# NICOS - NIghtly COntrol System
+# ARDOC - ARtifact DOcumentation Control System
 # Author Alex Undrus <undrus@bnl.gov>
 #
 # ----------------------------------------------------------
-# nicos_cmake_loghandler
+# ardoc_cmake_loghandler
 # ----------------------------------------------------------
 #
 use Env;
@@ -57,24 +57,24 @@ if ($#ARGV>=0) {
     /^-[qufl]+$/ && shift;
     }
 
-my $NICOS_WORK_AREA="$NICOS_WORK_AREA";
-my $NICOS_PROJECT_NAME="$NICOS_PROJECT_NAME";
-my $NICOS_BUILDLOG="$NICOS_BUILDLOG";
-my $NICOS_DBFILE = "$NICOS_DBFILE";
-my $NICOS_DBFILE_GEN = "$NICOS_DBFILE_GEN";
-my $NICOS_HOSTNAME = "$NICOS_HOSTNAME";
-my $NICOS_RELHOME="$NICOS_RELHOME";
-my $NICOS_DOCHOME="$NICOS_DOCHOME";
-my $NICOS_ARCH="$NICOS_ARCH";
-my $NICOS_LOG="$NICOS_LOG";
-my $NICOS_LOGDIR = dirname(${NICOS_LOG});
+my $ARDOC_WORK_AREA="$ARDOC_WORK_AREA";
+my $ARDOC_PROJECT_NAME="$ARDOC_PROJECT_NAME";
+my $ARDOC_BUILDLOG="$ARDOC_BUILDLOG";
+my $ARDOC_DBFILE = "$ARDOC_DBFILE";
+my $ARDOC_DBFILE_GEN = "$ARDOC_DBFILE_GEN";
+my $ARDOC_HOSTNAME = "$ARDOC_HOSTNAME";
+my $ARDOC_RELHOME="$ARDOC_RELHOME";
+my $ARDOC_DOCHOME="$ARDOC_DOCHOME";
+my $ARDOC_ARCH="$ARDOC_ARCH";
+my $ARDOC_LOG="$ARDOC_LOG";
+my $ARDOC_LOGDIR = dirname(${ARDOC_LOG});
 
-my $MAKELOG = "${NICOS_BUILDLOG}";
+my $MAKELOG = "${ARDOC_BUILDLOG}";
 if ( $infile ne "" )
 { $MAKELOG = "$infile" };
 
 my $LOGDIR = dirname($MAKELOG);
-my $LOGHANDLER_REPORT="$NICOS_WORK_AREA/nicos_loghandler_report";
+my $LOGHANDLER_REPORT="$ARDOC_WORK_AREA/ardoc_loghandler_report";
 my $file_unassigned_lines = "$LOGDIR/REMNANTS.log${file_suffix}";
 
 if ( -f $file_unassigned_lines ){
@@ -85,8 +85,8 @@ if ( -f $file_unassigned_lines ){
 my $cntr=0;
 my $cntr_abs=0;
 my $stat=0; 
-my $dbfile = basename($NICOS_DBFILE_GEN);
-my $dbfilegen = "${NICOS_WORK_AREA}/${dbfile}_res";
+my $dbfile = basename($ARDOC_DBFILE_GEN);
+my $dbfilegen = "${ARDOC_WORK_AREA}/${dbfile}_res";
 my $separator = "";
 my $pkg = "";
 $went_to_file=0;
@@ -115,17 +115,17 @@ foreach (@dbc)
     @fields = split(" ", $lll);
     $pkg = $fields[0];
     $pkg_base = basename($fields[0]);
-    warn "nicos_cmake_loghandler_new.pl: package: $pkg , base $pkg_base\n";
+    warn "ardoc_cmake_loghandler_new.pl: package: $pkg , base $pkg_base\n";
 #    $dirlog="${NICOS_RELHOME}/build.${NICOS_ARCH}/${pkg}";
     $dirlog="${NICOS_RELHOME}/build.${NICOS_ARCH}/BuildLogs";
     if ( ! -d $dirlog && -d "${NICOS_RELHOME}/BuildLogs" ) { $dirlog="${NICOS_RELHOME}/BuildLogs";}
-    warn "nicos_cmake_loghandler_new.pl: dirlog: $dirlog\n"; 
+    warn "ardoc_cmake_loghandler_new.pl: dirlog: $dirlog\n"; 
     opendir(DD, ${dirlog});
     @listlog = grep /^${pkg_base}\.log$/, readdir(DD);
     closedir DD;
-    warn "nicos_cmake_loghandler_new.pl:logs:@listlog\n"; 
+    warn "ardoc_cmake_loghandler_new.pl:logs:@listlog\n"; 
     $file_vers="${NICOS_RELHOME}/${pkg}/version.cmake";
-    warn "nicos_cmake_loghandler_new.pl: version file: $file_vers \n";
+    warn "ardoc_cmake_loghandler_new.pl: version file: $file_vers \n";
     $linev="N/A";
     if ( -f $file_vers ){
         open (FVR, "$file_vers");

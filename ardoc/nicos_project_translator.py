@@ -1,6 +1,6 @@
 import sys
 
-class nicosProjectTranslator:
+class ardocProjectTranslator:
     ''' short and full project names '''
     def __init__(self):
         self.dProjectTranslator={ 'AtlasCore':'Core', 'AtlasConditions':'Cond', 'DetCommon':'Det', 'AtlasEvent':'Evt', 'AtlasReconstruction':'Rec', 'AtlasSimulation':'Sim', 'AtlasTrigger':'Trg', 'AtlasAnalysis':'Anl', 'AtlasOffline':'Offl', 'AtlasProduction':'Prod', 'AtlasPoint1':'Pnt', 'AtlasTier0':'T0', 'AtlasP1HLT':'P1HLT' }
@@ -19,7 +19,7 @@ def main(argv):
   print("Name of project must be supplied\n")
   sys.exit(1)
  pName=argv[0]
- nPT=nicosProjectTranslator()
+ nPT=ardocProjectTranslator()
  pSName=nPT.getShortName(pName)
  print(pSName)  
 if __name__=='__main__':

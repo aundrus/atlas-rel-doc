@@ -2,7 +2,7 @@
 #
 #-----------------------------------------------------------------------------
 #
-# nicos_errortester.pl <package> <release>
+# ardoc_errortester.pl <package> <release>
 #
 # Shell script to test logfiles
 #    code system. used to determine if rotation can be performed.
@@ -15,7 +15,6 @@
 #
 #   Define a grep command to avoid possible path problems when trying
 #   to access gnu grep... (to be able to use -a flag...)
-#
 #
 #   Get arguments:
 #
@@ -231,9 +230,7 @@ if ($qatesting == 1) {
 @e_test_warnings_minor_ignore_2 = ("CVBFGG", "ServiceLocatorHelper", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_ignore_4 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_warnings_minor_ignore_5 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_warnings_minor_project_ignore = ("CVBFGG", "Athena", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_success = ( "CVBFGG", "${TEST_SUCCESS_PATTERN}", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_success = ( "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_success_addtl = ();
 } else { # if ($qatesting == 1)
 @e_test_failure = ("test issue message: Timeout", "test status fail", "*Failed", "TEST FAILURE", "severity=FATAL", ": FAILURE ", "command not found", "ERROR_MESSAGE", " ERROR ", "exit code: 143", "time quota spent");
@@ -457,7 +454,7 @@ EAID
       $lineT++;
       if ( ${testtesting} == 0 && ${qatesting} == 0 ){
       for ($m=0; $m <= $#e_patterns; $m++){
-        if ( $e_patterns[$m] ne "" && $line =~ /\Q$e_patterns[$m]\E/ && $line !~ /\Q$e_ignore[$m]\E/ && $line !~ /\Q$e_ignore_2[$m]\E/ && $line !~ /\Q$e_ignore_3[$m]\E/ && $line !~ /\Q$e_ignore_4[$m]\E/ && $line !~ /\Q$e_ignore_5[$m]\E/){ 
+        if ( $e_patterns[$m] ne "" && $line =~ /\Q$e_patterns[$m]\E/ && $line !~ /\Q$e_ignore[$m]\E/ && $line !~ /\Q$e_ignore_2[$m]\E/ && $line !~ /\Q$e_ignore_3[$m]\E/ && $line !~ /\Q$e_ignore_4[$m]\E/ && $line !~ /\Q$e_ignore_5[$m]\E){ 
         $e_count[$m]++;
         if ( $lineE[$m] == 0 ) { $lineE[$m]=$lineT; $lineEValue[$m]=$line; }
         }

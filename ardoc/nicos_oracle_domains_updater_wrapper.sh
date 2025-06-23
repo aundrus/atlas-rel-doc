@@ -1,9 +1,9 @@
 #!/bin/sh
 command=$@
-source $NICOS_HOME/NICOS_oracle_setup.sh
+source $ARDOC_HOME/ARDOC_oracle_setup.sh
 hostnm=`hostname`
-#echo "[NICOS] Starting Oracle nightstat == $command == on ${hostnm}"
-result=`python ${NICOS_HOME}/nicos_oracle_domains_updater.py $command`
+#echo "[ARDOC] Starting Oracle nightstat == $command == on ${hostnm}"
+result=`python ${ARDOC_HOME}/ardoc_oracle_domains_updater.py $command`
 stat=$?
 echo "$result"
 exit $stat
