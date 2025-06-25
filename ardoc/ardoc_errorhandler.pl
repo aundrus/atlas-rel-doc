@@ -11,6 +11,7 @@ use Env;
 use Cwd;
 use File::Basename;
 use File::stat;
+#use Mail::Mailer;
 
 sub compar{
     my $name = shift;
@@ -61,6 +62,7 @@ $type="test";
 my $ARDOC_TESTLOG = "$ARDOC_TESTLOG";
 my $ARDOC_RELHOME = "$ARDOC_RELHOME";
 my $ARDOC_INTTESTS_DIR = "$ARDOC_INTTESTS_DIR";
+my $ARDOC_TEST_DBFILE_GEN = "$ARDOC_TEST_DBFILE_GEN";
 my $ARDOC_INTTESTS_FILES = "$ARDOC_INTTESTS_FILES";
 my $ATN_HOME = "$ATN_HOME";
 my $ARDOC_WEBDIR = "$ARDOC_WEBDIR";
@@ -92,9 +94,9 @@ $dirdir="${ARDOC_RELHOME}/${ARDOC_INTTESTS_DIR}";
 
          my @test_db=();
          my $number_tests_db=0; 
-         if ( "$ARDOC_TEST_DBFILE" ne "" ){
-         if ( -f "$ARDOC_TEST_DBFILE" ){
-         $fname="$ARDOC_TEST_DBFILE";
+         if ( "$ARDOC_TEST_DBFILE_GEN" ne "" ){
+         if ( -f "$ARDOC_TEST_DBFILE_GEN" ){
+         $fname="$ARDOC_TEST_DBFILE_GEN";
          open(UT, "$fname");
          chomp(@test_db=<UT>);
          close(UT);
@@ -185,8 +187,6 @@ foreach (@test_db){
 #print "AAA $testname1 $testname2 $testdir1 $testdir2 $testsui $testtime\n";
 #print "BBB $testname_compar eq $testname \n";
 		 if ( $testname_compar eq $testname ){
-#		  print "AAA $testname1 $testname2 $testdir1 $testdir2 $testsui $testtime\n";
-#		  print "BBB $testname_compar eq $testname \n";
                   for ($m=7; $m <= $#fields; $m++){
                   push(@addr_t, $fields[$m]);
                   }
@@ -197,20 +197,29 @@ foreach (@test_db){
 	     }
 }
 #} if par != 1
+        $fecod="${ARDOC_TESTLOGDIR}/${testdir2}_${testname2}.exitcode";
+        $exitcode="N/A";
+        if ( -f $fecod ){
+            open (FK, "$fecod");
+            $exitcode = readline(FK);
+            $exitcode =~ s/\n//gs;
+            close(FK);
+	}
         my @strng1=();
-	$lower_AFEA=lc("$ARDOC_FULL_ERROR_ANALYSIS");
-	if ( $lower_AFEA ne "true" && $lower_AFEA ne "yes" && $testname =~ /CITest/ ){
+	$lower_NFEA=lc("$ARDOC_FULL_ERROR_ANALYSIS");
+	#	if ( $exitcode eq "0" && $lower_NFEA ne "true" && $lower_NFEA ne "yes" && $testname !~ /unit-tests/ ){
+	if ( $lower_NFEA ne "true" && $lower_NFEA ne "yes" && $testname !~ /unit-tests/ ){
 	    #LIGHT error analysis
 	    @strng1=`${ARDOC_HOME}/ardoc_errortester.pl -elst ${testname} ${release}`;
-	    print " light test_tester: ${testname}_ERROR_MESSAGE ${release} : @strng1 \n";
-        } else {
-	    @strng1=`${ARDOC_HOME}/ardoc_errortester.pl -est ${testname} ${release}`;
-	    if ( $lower_AFEA eq "true" || $lower_AFEA eq "yes" ){
-                print " full test_tester: ${testname}_ERROR_MESSAGE ${release} : @strng1 \n";
-            } else {
-		print " test_tester: ${testname}_ERROR_MESSAGE ${release} : @strng1 \n";
-            }
-	}
+	    print " light test_tester: ${testname}_ERROR_MESSAGE ${release} : @strng1 ===${exitcode}==\n";
+	} else {   
+            @strng1=`${ARDOC_HOME}/ardoc_errortester.pl -est ${testname} ${release}`;
+	    if ( $lower_NFEA eq "true" || $lower_NFEA eq "yes" ){
+                print " full test_tester: ${testname}_ERROR_MESSAGE ${release} : @strng1 ===${exitcode}==\n";
+	    } else {
+		print " test_tester: ${testname}_ERROR_MESSAGE ${release} : @strng1 ===${exitcode}==\n";
+	    }
+        }
         $strng=@strng1[0];
         @wrn_pat=();
         @err_pat=();
@@ -365,7 +374,7 @@ unshift (@body_prev," ARDOC combined error meassages from ${body_count_prev} tes
 unshift (@body_prev," !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
     }
 
-###print "ardoc_errorhandler.pl: sending email about $body_count_prev pbs in $testname_subject_prev, size $#body_prev, file count $mlf\n";
+print "ardoc_errorhandler.pl: sending email about $body_count_prev pbs in $testname_subject_prev, size $#body_prev, file count $mlf\n";
 #print "MMMMMM $mlf $#body_prev $body_count_prev \n @body_prev \n";
 #print "AAAAAA @addr_total_prev BBBBB @cont_addr\n";
 
@@ -373,8 +382,7 @@ unshift (@body_prev," !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         if ( $address ne "" ){
            if ( $address =~ /@/  ){
 if ( $address =~ somebody ){
-$do_nothing="";
-###print "ardoc_errorhandler.pl: Problems with ${type} $testname_subject_prev !!! Mail is NOT sent to such $address code $nomail_t[0] \n";                            
+print "ardoc_errorhandler.pl: Problems with ${type} $testname_subject_prev !!! Mail is NOT sent to such $address code $nomail_t[0] \n";                            
 }
 else{
     @address_fin=();
@@ -384,8 +392,7 @@ else{
         $add97 = lc($add95);
 #        print "ADDADD $add95,$add96,$add97\n";
         if ( $add97 =~ /damazio/ || $add97 =~ /cpotter/ || $add97 =~ /cern\.fr/ || $add97 =~ /helenka/ ){
-            $do_nothing="";
-###	    print "ardoc_errorhandler.pl: address $add96 blacklisted for ${type} $testname_subject_prev\n";
+	    print "ardoc_errorhandler.pl: address $add96 blacklisted for ${type} $testname_subject_prev\n";
         } else {
             push(@address_fin, $add96); 
 	}
@@ -393,24 +400,22 @@ else{
     $address_after_blacklist=join(',',@address_fin);
     ( $test_after_blacklist = $address_after_blacklist ) =~ s/\s//;
     if ( $test_after_blacklist ne "" ){
-    $do_nothing="";
-###print "ardoc_errorhandler.pl: Problems with ${type} $testname_subject_prev !!! Mail is sent to $address_after_blacklist code $nomail_t[0] \n";
+print "ardoc_errorhandler.pl: Problems with ${type} $testname_subject_prev !!! Mail is sent to $address_after_blacklist code $nomail_t[0] \n";
     } else {
-    $do_nothing=""; 
-###print "ardoc_errorhandler.pl: Problems with ${type} $testname_subject_prev !!! Mail list is empty \n";
+print "ardoc_errorhandler.pl: Problems with ${type} $testname_subject_prev !!! Mail list is empty \n";
     }
 if ( $nomail_t[0] eq 0 && $test_after_blacklist ne "" ){
     $from_address="atnight";
     $to_address="$address_after_blacklist";
     $subject="ARDOC: ${project}: ${type} problems in ${nightly} ${release} ${ARDOC_ARCH} with ${testname_subject_prev}";
-###    $mailer = Mail::Mailer->new("sendmail");
-###    $mailer->open({ From => "${from_address}",
-###                      To => "${to_address}",
-###                 Subject => "${subject}",
-###          })
-###    or die "Mailer can not open: $!\n";
-###    print $mailer @body_prev;
-###    $mailer->close();
+#    $mailer = Mail::Mailer->new("sendmail");
+#    $mailer->open({ From => "${from_address}",
+#                      To => "${to_address}",
+#                 Subject => "${subject}",
+#          })
+#    or die "Mailer can not open: $!\n";
+#    print $mailer @body_prev;
+#    $mailer->close();
 }
 } #if ( $address =~ somebody
 } #if ( $address =~ /@/  )
@@ -419,9 +424,7 @@ if ( $nomail_t[0] eq 0 && $test_after_blacklist ne "" ){
 } # if $#body_prev
 } #if ( $dplusd ne $dplusd_m ) 
 #--------------------------------------
-        #$fec="${ARDOC_TESTLOGDIR}/${testdir2}_${testname2}.exitcode";
-        ( $fec_base = $listfile ) =~ s/\.loglog/\.exitcode/g;
-	$fec="${ARDOC_TESTLOGDIR}/${fec_base}";
+        $fec="${ARDOC_TESTLOGDIR}/${testdir2}_${testname2}.exitcode";
         $exitcod="N/A";
         if ( -f $fec ){
 	    open (FK, "$fec");
@@ -429,9 +432,28 @@ if ( $nomail_t[0] eq 0 && $test_after_blacklist ne "" ){
             $exitcod =~ s/\n//gs;
             close(FK);
         }
-#        print "OPIIII ${fec} ${exitcod} ${testdir2}_${testname2}.exitcode ${ARDOC_TESTLOGDIR}\n";
-        print "RECORD to testprepage: $testname $listfileh $testdir $testname_base ${exitcod}\n";
-        print TF "$testname $testsuite $listfileh $tproblems $exitcod $testdir $testname_base @addr_t \"\"\" $fieldstr[2] \"\"\" \"@patterns\" \n";
+        $tstmp="${ARDOC_TESTLOGDIR}/${testdir2}_${testname2}.timestamp";
+        $time_beg="N/A";
+        $time_end="N/A";
+        if ( -f $tstmp ){
+            open (FK, "$tstmp");
+            $timelin1 = readline(FK);
+            $timelin1 =~ s/\n//gs;
+            ($timeline = $timelin1 ) =~ s/ //g;
+	    @fields_time = split("#", $timeline);
+            if ( $fields_time[0] ne "" ){
+                $time_beg = $fields_time[0];
+            }
+            if ( $#fields_time > 0 ){
+                if ( $fields_time[1] ne "" ){ 
+            	    $time_end = $fields_time[1];
+		}
+	    }
+            close(FK);
+        } 
+        print "===errorhandler: exit code,file,dir: ${exitcod} ${testdir2}_${testname2}.exitcode ${ARDOC_TESTLOGDIR}\n";
+	print "===errorhandler: time begin,end,filestamp: ${time_beg} ${time_end} ${testdir2}_${testname2}.timestamp\n";
+        print TF "$testname $testsuite $listfileh $tproblems $exitcod $testdir $testname_base $time_beg $time_end @addr_t \"\"\" $fieldstr[2] \"\"\" \"@patterns\" \n";
 @body_prev=@body;
 @addr_total_prev=@addr_total;
 $body_count_prev=$body_count;
@@ -469,13 +491,14 @@ foreach $lf (@listf){
         }
 }
 @listf=("");
-} #end of sub testtester
+} #end of sub
 
 #print "------------------------------------------------------------\n";
 #print "   Starting ARDOC error analysis\n";
 #print "------------------------------------------------------------\n";
 my $ARDOC_WORK_AREA="$ARDOC_WORK_AREA";
 my $ARDOC_DBFILE = "$ARDOC_DBFILE";
+my $ARDOC_DBFILE_GEN = "$ARDOC_DBFILE_GEN";
 my $ARDOC_MAIL = "$ARDOC_MAIL";
 my $ARDOC_MAIL_WARNINGS = "$ARDOC_MAIL_WARNINGS";
 my $ARDOC_MAIL_MINOR_WARNINGS = "$ARDOC_MAIL_MINOR_WARNINGS";
@@ -502,13 +525,10 @@ $nomail=1;
 
 $fileorig="${ARDOC_DBFILE}";
 $base_file=basename($ARDOC_DBFILE);
-#$filename_gen="${ARDOC_WORK_AREA}/${base_file}_gen";
-#$filename="$filename_gen";
-#$filename_res="${ARDOC_WORK_AREA}/${base_file}_gen_res";
-#if ( -f $filename_res ) { $filename="${filename_res}"; } 
-$filename="${ARDOC_DBFILE}";
-$filename_gen="${ARDOC_DBFILE}";
-$filename_res="${ARDOC_DBFILE}";
+$filename_gen="${ARDOC_WORK_AREA}/${base_file}_gen";
+$filename="$filename_gen";
+$filename_res="${ARDOC_WORK_AREA}/${base_file}_gen_res";
+if ( -f $filename_res ) { $filename="${filename_res}"; } 
 $prepage="ardoc_prepage";
 $prepage_problems="ardoc_prepage_problems";
 $testprepage="ardoc_testprepage";
@@ -800,6 +820,12 @@ if ( $part_t eq "no" ) {
    $alarm_level="problems";
    if ( $problems eq 1 ) { $alarm_level="warning signs"; } 
    if ( $problems eq 0.5 ) { $alarm_level="minor warning signs"; } 
+#   $drctr_copy=$drctr;
+#   if ( "$ARDOC_COPY_HOME" ne "" ){
+#     $drctr_base=basename(${drctr});
+#     $drctr_copy="${ARDOC_COPY_HOME}/${ARDOC_PROJECT_RELNAME_COPY}/ARDOC_area/${drctr_base}";
+#   }
+#   $var="${drctr_copy}/${pkgn}.loglog";
    $var="${drctr}/${pkgn}.loglog"; 
    $varvar="${ARDOC_WEBPAGE}/${WLogdir}/${pkgn}.html"; 
    @body=();
@@ -825,19 +851,19 @@ if ( $part_t eq "no" ) {
   if ( $ARDOC_MAIL_WARNINGS eq "no" && $alarm_level eq "warning signs" ){ $nomail_1=1; }
   if ( $ARDOC_MAIL_MINOR_WARNINGS ne "yes" && $alarm_level eq "minor warning signs" ){ $nomail_1=1; }
 
-###  print "ardoc_errorhandler.pl: Problems with $package !!! Mail is sent to $address code $nomail_1 (orig. $nomail ) \n";  
+  print "ardoc_errorhandler.pl: Problems with $package !!! Mail is sent to $address code $nomail_1 (orig. $nomail ) \n";  
   if ( $nomail_1 eq 0 ){  
     $from_address="atnight";
     $to_address="$address";
     $subject="ARDOC: ${project}: build problems in ${nightly} ${release} ${ARDOC_ARCH} with ${package}";
-###    $mailer = Mail::Mailer->new("sendmail");
-###    $mailer->open({ From => "${from_address}",
-###                      To => "${to_address}",
-###                 Subject => "${subject}",
-###          })
-###    or die "Mailer can not open: $!\n";
-###    print $mailer @body;
-###    $mailer->close();
+#    $mailer = Mail::Mailer->new("sendmail");
+#    $mailer->open({ From => "${from_address}",
+#                      To => "${to_address}",
+#                 Subject => "${subject}",
+#          })
+#    or die "Mailer can not open: $!\n";
+#    print $mailer @body;
+#    $mailer->close();
   }
 
   } #if ( $address =~ /@/  )
@@ -852,6 +878,12 @@ if ( $part_t eq "no" ) {
   if ( $test_problems[$i] gt 0.5 ){
 
   $dirtest=dirname(${ARDOC_TESTLOG});
+#  $dirtest_copy=$dirtest;
+#    if ( "$ARDOC_COPY_HOME" ne "" ){
+#    $dirtest_base=basename(${dirtest});
+#    $dirtest_copy="${ARDOC_COPY_HOME}/${ARDOC_PROJECT_RELNAME_COPY}/ARDOC_area/${dirtest_base}";
+#    }
+#  $var="${dirtest_copy}/${pkgn}.loglog";
   $var="${dirtest}/${pkgn}.loglog"; 
   $varvar="${ARDOC_WEBPAGE}/${WTLogdir}/${pkgn}.html";
   @body=();
@@ -870,22 +902,22 @@ if ( $part_t eq "no" ) {
     #$address =~ s/([@])/\\$1/g;
         if ( $address ne "" ){
            if ( $address =~ /@/  ){
-  $do_nothing="";
-###  print "ardoc_errorhandler.pl: Problems with ${typet}s of  $package !!! Mail is sent to $address code $nomail_t[$i]\n";
+
+  print "ardoc_errorhandler.pl: Problems with ${typet}s of  $package !!! Mail is sent to $address code $nomail_t[$i]\n";
 #  print "MMMMMM @body \n";
 
   if ( $nomail_t[$i] eq 0 ){
     $from_address="atnight";
     $to_address="$address";
     $subject="ARDOC: ${project}: ${typet} problems in ${nightly} ${release} ${ARDOC_ARCH} with ${package}";
-###    $mailer = Mail::Mailer->new("sendmail");
-###    $mailer->open({ From => "${from_address}",
-###                     To => "${to_address}",
-###                 Subject => "${subject}",
-###          })
-###    or die "Mailer can not open: $!\n";
-###    print $mailer @body;
-###    $mailer->close();
+#    $mailer = Mail::Mailer->new("sendmail");
+#    $mailer->open({ From => "${from_address}",
+#                      To => "${to_address}",
+#                 Subject => "${subject}",
+#          })
+#    or die "Mailer can not open: $!\n";
+#    print $mailer @body;
+#    $mailer->close();
   }
 
   } #if ( $address =~ /@/  )

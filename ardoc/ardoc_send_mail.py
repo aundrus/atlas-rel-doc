@@ -2,12 +2,11 @@ import os,getopt,sys,re
 import socket
 from pprint import pprint
 import datetime
-import smtplib,logging
+import smtplib
 
 ###########
 #### MAIN
 ###########                             
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 home=os.environ.get('HOME','')
 ardoc_nightly_name=os.environ.get('ARDOC_NIGHTLY_NAME','UNKNOWN')
 ardoc_arch=os.environ.get('ARDOC_ARCH','UNKNOWN')
@@ -19,12 +18,12 @@ ts_jf = datetime.datetime.strftime(ts_j,'%Y-%m-%d %H:%M')
 try:
   optionslist, args = getopt.getopt(sys.argv[1:],'l:m:',['level=','message='])
 except getopt.error:
-  logging.error('''Error: You tried to use an unknown option or the                     
+  print('''Error: You tried to use an unknown option or the                     
                  argument for an option that requires it was missing.''')            
   sys.exit(2)
 
 if len(optionslist) == 0:
-  logging.error('''Error: ardoc_send_mail.py requires coomand line options  
+  print('''Error: ardoc_send_mail.py requires coomand line options  
                  Try "ardoc_send_mail.py -h" for more information.''')
   sys.exit(2) 
 level='NONE'
@@ -55,10 +54,10 @@ Subject: %s
           try:
             smtpObj = smtplib.SMTP('localhost')
             smtpObj.sendmail(sender, receivers, message)
-            logging.info("ardoc_send_mail.py: SENDING MESSAGE TO '%s'",receivers)
-            logging.info("--->'%s'",message)
+            print("ardoc_send_mail.py: SENDING MESSAGE TO ",receivers)
+            print("--->",message)
           except:
-            logging.error("ardoc_send_mail.py: Warning: unable to send email")
+            print("ardoc_send_mail.py: Warning: unable to send email")
             sys.exit(1)
 
 

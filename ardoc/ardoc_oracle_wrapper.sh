@@ -2,10 +2,10 @@
 timeminutes=$1
 shift
 command=$@
-source $ARDOC_HOME/ardoc_oracle_setup.sh
+source $ARDOC_HOME/ARDOC_oracle_setup.sh
 hostnm=`hostname`
 
-echo "[ARDOC] Starting Oracle interface $command on ${hostnm}, limit $timeminutes minutes"
+echo "[ARDOC] Starting Oracle interface $command on ${hostnm}, limit $timeminutes minutes, PYTHONPATH $PYTHONPATH"
 
 (sleep 1; \
  spp=`ps -ww -u $UID -o pid,ppid,args | grep -e "$command" | grep -v grep | grep -v "wrapper" | head -1 | awk '{print $1}'` ;\

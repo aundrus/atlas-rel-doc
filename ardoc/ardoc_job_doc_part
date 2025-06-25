@@ -1,0 +1,117 @@
+#!/bin/sh
+#
+# ARDOC - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+# 
+# ----------------------------------------------------------
+# ardoc_job : main ardoc executable
+# ----------------------------------------------------------
+#
+jid="NONE"
+#while [ $# -ne 0 ]; do
+#    case $1 in
+#         -b | --begin)     start_point=$2; shift;;
+#              --end)       end_step=$2; shift;;
+#         -s | --scratch)   from_scratch="yes";;
+#              --nocopy)    copy_steps="no";;  
+#         -r | --relnum)    relnum_fixed=$2; shift;;
+#         -* | --*)         show_help; exit 1;;
+#    esac
+#    shift
+#done
+
+comname=`basename $0`
+if [ "$comname" = "ardoc_job_doc" ]; then
+exitcomjob="exit"
+else
+exitcomjob="return"
+fi
+
+if [ "${ARDOC_HOME}" = "" ]; then
+echo "ardoc_job: ARDOC_HOME variable is not defined, "
+echo "           please set before running ardoc jobs"
+eval ${exitcomjob} 1
+fi
+if [ "${ARDOC_PROJECT_RELNAME}" = "" ]; then
+echo "ardoc_job: ARDOC_PROJECT_RELNAME variable is not defined, "
+echo "           please set before running ardoc jobs"
+eval ${exitcomjob} 1
+fi
+export ARDOC_PROJECT_RELNAME_COPY=$ARDOC_PROJECT_RELNAME
+
+rm -f /tmp/ardoc_log* > /dev/null 2>&1
+tmp_log="/tmp/ardoc_log_$$"
+tmp_env="/tmp/ardoc_env_$$"
+env > $tmp_env
+#######STEP 0   CONFIG##########
+date_start_config=`date +"%Y-%m-%d %H:%M:%S"`
+ARDOC_BYPASS="no"
+[[ "${ARDOC_BYPASS_ENABLE}" = "yes" ]] && ARDOC_BYPASS="yes" 
+export ARDOC_BYPASS
+source ${ARDOC_HOME}/ardoc_config > ${tmp_log} 2>&1; stat=$?
+if [ "$stat" -ne 0 ]; then 
+echo "ARDOC_LOG=" ${ARDOC_LOG}
+echo "ardoc_job:  ARDOC failed at configuration" >> ${ARDOC_LOG}; eval ${exitcomjob} ${stat}  
+fi
+  dsta=`date +"%Y-%m-%d %H:%M"`
+  echo $dsta > ${ARDOC_WORK_AREA}/start_date
+  [[ -f ${ARDOC_WORK_AREA}/end_date ]] && rm -f ${ARDOC_WORK_AREA}/end_date
+  touch ${ARDOC_WORK_AREA}/end_date
+#######    
+echo "DDDDDDDDDDDDDDD"
+
+cat ${tmp_log}                                                                                     
+echo "DDDDDDDDDDDDDDA"
+env | grep ARDOC
+echo "DDDDDDDDDDDDDDB"
+
+###### 
+##${ARDOC_HOME}/ardoc_progress_informer 0 "$date_start_config"
+
+cat ${tmp_log} >> ${ARDOC_LOG} 
+
+##$ARDOC_HOME/ardoc_db_access -b -s "TOOLINIT"
+##$ARDOC_HOME/ardoc_db_access -e -s "TOOLINIT" --nochange
+##$ARDOC_HOME/ardoc_db_access -b -s "CHECKOUT"
+##$ARDOC_HOME/ardoc_db_access -e -s "CHECKOUT"
+##$ARDOC_HOME/ardoc_db_access -b -s "PROJECTCONF"
+##$ARDOC_HOME/ardoc_db_access -e -s "PROJECTCONF"
+##$ARDOC_HOME/ardoc_db_access -b -s "BUILD"
+##$ARDOC_HOME/ardoc_db_access -e -s "BUILD"
+
+dbuildlog=`dirname $ARDOC_BUILDLOG`
+python $ARDOC_HOME/ardoc_container_extractor_monol.py >> ${ARDOC_LOG} 2>&1
+$ARDOC_HOME/ardoc_cmake_loghandler_new.pl >> ${ARDOC_LOG} 2>&1
+$ARDOC_HOME/ardoc_cmake_loghandler_new_2ndloop.pl -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1
+
+##$ARDOC_HOME/ardoc_db_access -b -s "ERR"
+#${ARDOC_HOME}/ardoc_webpage --nomail --jid $jid >> ${ARDOC_LOG} 2>&1; stat=$?
+${ARDOC_HOME}/ardoc_webpage --nomail >> ${ARDOC_LOG} 2>&1; stat=$?
+if [ "$stat" -ne 0 ]; then 
+echo "ardoc_job:  ARDOC failed while analysing error or generating web pages"; 
+##eval ${exitcomjob} 1
+fi
+date +"%Y-%m-%d %H:%M" > ${ARDOC_WORK_AREA}/end_date
+##${ARDOC_HOME}/ardoc_progress_informer 10
+
+##${ARDOC_HOME}/ardoc_process_oracle_results.py >> ${ARDOC_LOG} 2>&1 
+
+echo "LOLOOOOO=============="
+cat $ARDOC_LOG
+echo "LOLOOOOO--------------"
+
+if [ "$stat" -ne 0 ]; then
+echo "ardoc_job:  ARDOC failed while analysing error or generating web pages";
+fi
+
+
+
+
+
+
+
+
+
+
+
+

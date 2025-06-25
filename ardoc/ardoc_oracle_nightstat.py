@@ -6,13 +6,12 @@ import platform
 import cx_Oracle
 from pprint import pprint
 import datetime
-import getopt,logging
+import getopt
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 try:
     optionslist, args = getopt.getopt(sys.argv[1:],'n:gs:',['nightly=','get','set=','short'])
 except getopt.error:
-    logging.error('''ardoc_oracle_nightstat.py: Error: You tried to use an unknown option or the argument for an option that requires it was missing.''')
+    sys.stderr.write('''ardoc_oracle_nightstat.py: Error: You tried to use an unknown option or the argument for an option that requires it was missing.\n''')
     sys.exit(0)
 
 nname="NONE"
@@ -34,9 +33,9 @@ for a in optionslist[:]:
 home=""
 if 'HOME' in os.environ : home=os.environ['HOME']
 if nname == "NONE":
-    logging.error("ardoc_oracle_nightstat.py: Error: ARDOC NIGHTLY NAME is not defined")  
+    sys.stderr.write("ardoc_oracle_nightstat.py: Error: ARDOC NIGHTLY NAME is not defined\n")  
     sys.exit(1)
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
 ts_j = datetime.datetime.now()
 cFN="/afs/cern.ch/atlas/software/dist/nightlies/cgumpert/TC/OR_crdntl"
 if opt_stat == "set": cFN="/afs/cern.ch/atlas/software/dist/nightlies/cgumpert/TC/OW_crdntl"
@@ -54,7 +53,7 @@ try:
     connection.ping()
 except cx_Oracle.DatabaseError as exception:
     error, = exception.args
-    logging.error("ardoc_oracle_nightstat.py: Database connection error: '%s' '%s' '%s'", error.code, error.offset, error.message)
+    sys.stderr.write("ardoc_oracle_nightstat.py: Database connection error: " + str(error.code) + " " + str(error.offset) + " " + str(error.message) + "\n")
 #else:
 #    print "ardoc_oracle_hbeat.py: Connection is alive!"
 cursor.execute("ALTER SESSION SET current_schema = "+oracle_schema)    
@@ -63,10 +62,10 @@ cmnd="""select stat, btype, stuser from nightlies where nname = :nname"""
 cursor.execute(cmnd,{'nname' : nname})
 result = cursor.fetchall()
 if len(result) == 0:
-            logging.error("ardoc_oracle_nightstat.py: Info: this nightly branch do not exist: '%s'",nname)
+            sys.stderr.write("ardoc_oracle_nightstat.py: Info: this nightly branch do not exist: " + str(nname) + "\n")
             sys.exit(2)
 if len(result) > 1:
-            logging.error("ardoc_oracle_nightstat.py: Error: multiple rows for this nightly branch do exist: '%s'",nname)
+            sys.stderr.write("ardoc_oracle_nightstat.py: Error: multiple rows for this nightly branch do exist:" + str(nname) + "\n")
             sys.exit(1)
 stat,btype,requestor=result[0]
 if requestor == None : requestor=""
@@ -74,15 +73,15 @@ if requestor == None : requestor=""
 if shortprint : 
   if opt_stat == 'get' : print(stat)
 else:
-  logging.info("ardoc_oracle_nightstat.py: nightly '%s' has type '%s', status '%s'",nname,btype,stat)
+  print("ardoc_oracle_nightstat.py: nightly",nname," has type",btype,", status",stat)
 if opt_stat == 'set' :
   if set_stat == '0' or set_stat == '1' or set_stat == '3': 
     if set_stat == '3': stat_user=requestor
     cmnd="""update nightlies set stat = :stat, sttime = :sttime, stuser = :stuser where nname = :nname"""
     if shortprint : 
-      logging.info("ardoc_oracle_nightstat: setting status: '%s'",set_stat)
+      print(set_stat)
     else:
-      logging.info("ardoc_oracle_nightstat: '%s' nightly name: '%s' new stat: '%s' requestor (parameter stuser): '%s'",cmnd,nname,set_stat,stat_user)  
+      print("ardoc_oracle_nightstat: ",cmnd,' nightly name: ',nname,' new stat: ',set_stat,'requestor (parameter stuser):',stat_user)  
     int_stat=int(set_stat)
     dict_p={ 'stat' : int_stat, 'sttime' : ts_j, 'nname' : nname, 'stuser' : stat_user } 
     cursor.prepare(cmnd)
@@ -93,7 +92,7 @@ if opt_stat == 'set' :
     if shortprint : 
       print("99")
     else: 
-      logging.info("ardoc_oracle_nightstat.py: Warning: this stat value is not allowed and will not be set: '%s'",set_stat) 
+      print("ardoc_oracle_nightstat.py: Warning: this stat value is not allowed and will not be set: ",set_stat) 
 cursor.close()
 if do_commit: connection.commit()
 connection.close()

@@ -16,7 +16,6 @@
 #   Define a grep command to avoid possible path problems when trying
 #   to access gnu grep... (to be able to use -a flag...)
 #
-#
 #   Get arguments:
 #
 use Env;
@@ -106,10 +105,8 @@ if ($#ARGV>=0) {
 #
 my $ARDOC_LOG="$ARDOC_LOG";
 my $ARDOC_TESTLOG="$ARDOC_TESTLOG";
-my $ARDOC_NINJALOG="$ARDOC_NINJALOG";
 my $ARDOC_HOME="$ARDOC_HOME";
 my $ARDOC_PROJECT_NAME="$ARDOC_PROJECT_NAME";
-my $ARDOC_PROJECT_RELNAME="$ARDOC_PROJECT_RELNAME";
 
 if ( $testtesting == 0 && $qatesting == 0 ){
     $type="package";
@@ -143,15 +140,12 @@ $compname=$ARGV[0];
 $release=$ARGV[1];
 $pkgname_full=$ARGV[3];
 $pkgname=$pkgname_full;
-if ( $pkgname_full ne "" ){ 
+if ( $pkgname_full ne "" ){
 $pkgname=basename($pkgname_full);
 }
 
-##warn "PPP ${pkgname} $contname\n";
-
 $cnt1=0;
-while ($compname =~ /_${pkgname}/g) {$cnt1++; if ( $cnt1 > 20 ){last;}} 
-##warn "CNT1 ${cnt1}\n";
+while ($compname =~ /_${pkgname}/g) {$cnt1++; if ( $cnt1 > 25 ){last;}} 
 if ( $cnt1 == 0 ){
     $contname = $compname;
 } else {
@@ -168,8 +162,6 @@ $1 . $2
 }gex;
 }
 
-##warn "P ${pkgname} =CM=  $compname =CN= $contname\n";
-
 my $TEST_SUCCESS_PATTERN="$ARDOC_TEST_SUCCESS_PATTERN";
 my $TEST_FAILURE_PATTERN="$ARDOC_TEST_FAILURE_PATTERN";
 my $TEST_WARNING_PATTERN="$ARDOC_TEST_WARNING_PATTERN";
@@ -184,23 +176,22 @@ if ($qatesting == 1) {
     $TEST_FAILURE_PATTERN="$ARDOC_QA_FAILURE_PATTERN";
     $TEST_WARNING_PATTERN="$ARDOC_QA_WARNING_PATTERN";
 }
-#${BUILD_FAILURE_PATTERN} is removed from e-patterns
-my @e_patterns = (": error:", "CMake Error", "runtime error:", "No rule to make target", "SyntaxError:", "raceback (most recent", "CVBFGG","error: ld","error: Failed to execute","no build logfile");
-my @e_ignore = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "for ${NICOS_PROJECT_NAME}Release are");
-my @e_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "for ${NICOS_PROJECT_NAME} are");
-my @e_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "for ${NICOS_PROJECT_NAME}RunTime are");
+my @e_patterns = (": error:", "CMake Error", "runtime error:", "No rule to make target", "${BUILD_FAILURE_PATTERN}", "raceback (most recent", "CVBFGG","error: ld","error: Failed to execute","no build logfile");
+my @e_ignore = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "for ${ARDOC_PROJECT_NAME}Release are");
+my @e_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "for ${ARDOC_PROJECT_NAME} are");
+my @e_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "for ${ARDOC_PROJECT_NAME}RunTime are");
 my @e_ignore_4 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_ignore_5 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_warning_patterns = ("Errors/Problems found", "CMake Warning", "CMake Deprecation Warning", "Error in", "control reaches end of non-void", "suggest explicit braces", "> Warning:", "type qualifiers ignored on function return type", "[-Wsequence-point]", "mission denied", "nvcc warning :", "Warning: Fortran", 'library.*\sexposes\s+factory.*\sdeclared\s+in');
 my @e_warning_patterns_correlators = ("", "", "", "", "", "", "", "${pkgname}","","","","","");
-my @e_warning_patterns_ignore = ("Errors/Problems found : 0", "CVBFGG", "CVBFGG", "msg", "/external", "/external", "> Warning: template", "/external", "/external", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+my @e_warning_patterns_ignore = ("Errors/Problems found : 0", "CVBFGG", "CVBFGG", "CVBFGG", "/external", "/external", "> Warning: template", "/external", "/external", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_warning_patterns_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG","CVBFGG","CVBFGG","CVBFGG","CVBFGG", "CVBFGG");
 #my @e_warning_patterns_minor = ("overriding commands for target", "fake target due to", "ignoring commands for target", "CVBFGG", "too few arguments for format", "too many arguments for format", "unused variable");
-my @e_warning_patterns_minor = (": warning: ","Warning: the last line", "Warning: Unused class rule", 'Warning:\s.*rule', "#pragma message:", 'WARNING\s+.*GAUDI', "CVBFGG");
-my @e_warning_patterns_minor_ignore = ("make[", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "ClassIDSvc", "CVBFGG");
-my @e_warning_patterns_minor_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-my @e_warning_patterns_minor_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-my @e_warning_patterns_minor_ignore_4 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+my @e_warning_patterns_minor = (": warning: ", "Warning: the last line", "Warning: Unused class rule", 'Warning:\s.*rule',"#pragma message:", 'WARNING\s+.*GAUDI', "CVBFGG", "CVBFGG");
+my @e_warning_patterns_minor_ignore = ("make[", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "ClassIDSvc", "CVBFGG", "CVBFGG");
+my @e_warning_patterns_minor_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+my @e_warning_patterns_minor_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+my @e_warning_patterns_minor_ignore_4 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_success = ( "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_warning_success = ( "CVBFGG", "Package build succeeded", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @packages_to_bypass_success = ( "$ARDOC_PROJECT_NAME", "${ARDOC_PROJECT_NAME}Release", "${ARDOC_PROJECT_NAME}RunTime" );
@@ -218,55 +209,39 @@ my @e_test_warnings_minor=();
 my @e_test_warnings_minor_ignore=();
 my @e_test_warnings_minor_ignore_1=();
 my @e_test_warnings_minor_ignore_2=();
-my @e_test_warnings_minor_ignore_4=();
 my @e_test_warnings_minor_ignore_3=();
+my @e_test_warnings_minor_ignore_4=();
 my @e_test_warnings_minor_ignore_5=();
 my @e_test_warnings_minor_project_ignore=();
 my @e_test_success=();
 my @e_test_success_addtl=();
 if ($qatesting == 1) {
-@e_test_failure = ("*Timeout", "time quota spent", "severity=FATAL", "Error: execution_error", "command not found", "tests FAILED", "*Failed", "Errors while running CTest", "${TEST_FAILURE_PATTERN}", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "kvt: command not found", "INFO", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_1 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_4 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_5 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_failure = ("*Timeout", "time quota spent", "*Failed", "ERROR_MESSAGE", "severity=FATAL", "Error: execution_error", "command not found", "tests FAILED", "tester: Error", "Errors while running CTest");
+@e_test_failure_ignore = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "kvt: command not found", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_1 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_4 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_5 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings = ("${TEST_WARNING_PATTERN}", "raceback (most recent", "file not found", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor = ("severity=ERROR", "  ERROR", "No such file or directory", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_warnings_minor_ignore = ("CVBFGG", "ERROR (pool)", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_warnings_minor_ignore = ("CVBFGG", "ERROR (pool)", "INFO", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_ignore_1 = ("CVBFGG", "ERROR IN", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_ignore_2 = ("CVBFGG", "ServiceLocatorHelper", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_ignore_4 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_warnings_minor_ignore_5 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_warnings_minor_project_ignore = ("CVBFGG", "Athena", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_success = ( "CVBFGG", "${TEST_SUCCESS_PATTERN}", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_success = ( "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_success_addtl = ();
 } else { # if ($qatesting == 1)
-@e_test_failure = ("*Timeout", "test status fail(?!.*\\bTIMEOUT\\b)", "TIMEOUT occurred", "*Failed", "TEST FAILURE", "${TEST_FAILURE_PATTERN}",
-"severity=FATAL", ": FAILURE ", "Error: execution_error", "command not found", "ERROR_MESSAGE", 
-" ERROR ", "exit code: 143", "tests FAILED", "time quota spent");
-@e_test_failure_ignore = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "ctest status notrun", "CVBFGG", 
-"CVBFGG","check_log", "CVBFGG", "kvt: command not found", "CVBFGG", 
-"check_log", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_1 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG",
-"CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG",
-"HelloWorld", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", 
-"CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG",
-"Cannot interpolate outside histogram", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", 
-"CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG",
-"INFO ", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_4 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG",
-"CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG",
-"ERROR Propa", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_failure_ignore_5 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG",
-"CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG",
-"Acts", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_warnings = ("${TEST_WARNING_PATTERN}", "raceback (most recent", "file not found", "Logfile error", "Non-zero return", "TEST WARNING", "CVBFGG", "CVBFGG");
-#@e_test_warnings_minor = ("severity=ERROR", "  ERROR", "No such file or directory", "ctest status notrun", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_failure = ("test issue message: Timeout", "test status fail", "*Failed", "TEST FAILURE", "severity=FATAL", ": FAILURE ", "command not found", "ERROR_MESSAGE", " ERROR ", "exit code: 143", "time quota spent");
+@e_test_failure_ignore = ("CVBFGG", "CVBFGG", "CVBFGG", "ctest status notrun", "CVBFGG", "check_log", "CVBFGG", "CVBFGG", "check_log", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_1 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "HelloWorld", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "Cannot interpolate outside histogram", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "INFO ", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_4 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "ERROR Propa", "CVBFGG", "CVBFGG");
+@e_test_failure_ignore_5 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "Acts", "CVBFGG", "CVBFGG");
+@e_test_warnings = ("${TEST_WARNING_PATTERN}", "raceback (most recent", "file not found", "Logfile error", "Non-zero return", "TEST WARNING", "*Timeout", "CVBFGG");
+#@e_test_warnings_minor = ("severity=ERROR", "  ERROR", "No such file or directory", "ctest status notrun", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG"); 
 @e_test_warnings_minor = ("severity=ERROR", "  ERROR", "No such file or directory", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_ignore = ("CVBFGG", "ERROR (pool)", "INFO", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_ignore_1 = ("CVBFGG", "ERROR IN", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
@@ -275,38 +250,39 @@ if ($qatesting == 1) {
 @e_test_warnings_minor_ignore_4 = ("CVBFGG", "Cannot interpolate outside histogram", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_ignore_5 = ("CVBFGG", "Acts", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 @e_test_warnings_minor_project_ignore = ("CVBFGG", "Athena", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_success = ( "CVBFGG", "${TEST_SUCCESS_PATTERN}", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-@e_test_success_addtl = ();
+@e_test_success = ( "Info: test completed", "${TEST_SUCCESS_PATTERN}", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+@e_test_success_addtl = (); 
 if ( $light == 1 ){
     for ($m=0; $m <= $#e_test_failure; $m++){
-	$e_test_failure[$m]="CVBFGG";
+        $e_test_failure[$m]="CVBFGG";
     }
     for ($m=0; $m <= $#e_test_warnings; $m++){
-        $e_test_warnings[$m]="CVBFGG";
+      	$e_test_warnings[$m]="CVBFGG";
     }
     for ($m=0; $m <= $#e_test_warnings_minor; $m++){
         $e_test_warnings_minor[$m]="CVBFGG";
     }
-    $e_test_failure[0]="test status fail(?!.*\\bTIMEOUT\\b)";
-    $e_test_failure[1]="TIMEOUT occurred";
+    $e_test_failure[0]="test issue message: Timeout";
+    $e_test_failure[1]="test status fail";
     $e_test_failure[2]="TEST FAILURE";
     $e_test_failure_ignore[0]="CVBFGG";
     $e_test_failure_ignore[1]="CVBFGG";
     $e_test_failure_ignore[2]="ctest status notrun";
     $e_test_warnings_minor[0]="ctest status notrun"; $e_test_warnings_minor[1]="*Failed"; $e_test_warnings_minor[2]="TEST FAILURE";
+#    $e_test_warnings_minor[0]="CVBFGG"; $e_test_warnings_minor[1]="*Failed"; $e_test_warnings_minor[2]="TEST FAILURE";
     $e_test_warnings_minor[3]="*Timeout"; $e_test_warnings_minor[4]="time quota spent";
     warn "===ardoc_errortester.pl: limited error analysis for $compname\n";
-}
+} 
 } # else if ($qatesting == 1)
-my @e_count = (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+my @e_count = (0,0,0,0,0,0,0,0,0,0,0);
 my @w_count = (0,0,0,0,0,0,0,0,0,0,0,0,0);
 my @w_minor_count = (0,0,0,0,0,0,0,0);
 my @s_count = (0,0,0,0,0,0,0,0,0,0);
 my @s_w_count = (0,1,0,0,0,0,0,0);
-my @lineE = (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+my @lineE = (0,0,0,0,0,0,0,0,0,0,0);
 my @lineW = (0,0,0,0,0,0,0,0,0,0,0,0,0);
 my @lineM = (0,0,0,0,0,0,0,0);
-my @lineEValue = ("","","","","","","","","","","","","","","");
+my @lineEValue = ("","","","","","","","","","","");
 my @lineWValue = ("","","","","","","","","","","","","");
 my @lineMValue = ("","","","","","","","");
 if ( $testtesting == 1 || $qatesting == 1 ){ 
@@ -336,8 +312,8 @@ $dfgert=1;
            $a=0;
            push(@e_count,$a);
 	   push(@lineE,$a);
-	   $a_strng="";
-	   push(@lineEValue,$a_strng);
+           $a_strng="";
+           push(@lineEValue,$a_strng);
            }
      close(UT);   
      }
@@ -404,7 +380,7 @@ closedir DD;
 $stg="${compname}.loglog";
 @list = grep /^${stg}$/, @allfiles;
 $listfiles = (sort { -M $a <=> -M $b } @list)[0];
-##warn " --- $compname --- $ARDOC_TESTLOGDIR -- $listfiles\n";
+#print " --- $compname --- $ARDOC_TESTLOGDIR -- $listfiles\n";
 
    $lineT=0;
    $file="$ARDOC_TESTLOGDIR/$listfiles"; 
@@ -417,25 +393,21 @@ $listfiles = (sort { -M $a <=> -M $b } @list)[0];
        $filebase=join('\.',@filebase_a);
        $filehtml="$filedir/$filebase" . ".html";
    }
-   $textfile_http="${ARDOC_WEBPAGE}/ARDOC_Log_${ARDOC_PROJECT_RELNAME}/${filebase1}";
+   $textfile_http="${ARDOC_WEBPAGE}/ARDOC_Log_${ARDOC_PROJECT_RELNAME_COPY}/${filebase1}";
    if ( ${testtesting} != 0 ){
-   $textfile_http="${ARDOC_WEBPAGE}/ARDOC_TestLog_${ARDOC_PROJECT_RELNAME}/${filebase1}";
+   $textfile_http="${ARDOC_WEBPAGE}/ARDOC_TestLog_${ARDOC_PROJECT_RELNAME_COPY}/${filebase1}";
    } elsif ( ${qatesting} != 0 ){
-   $textfile_http="${ARDOC_WEBPAGE}/ARDOC_QALog_${ARDOC_PROJECT_RELNAME}/${filebase1}";
+   $textfile_http="${ARDOC_WEBPAGE}/ARDOC_QALog_${ARDOC_PROJECT_RELNAME_COPY}/${filebase1}";
    }
    $optn="$contname $pkgname build";
    if ( ${testtesting} != 0 || ${qatesting} != 0 ){
    @f_contname=split("__",$contname);
    $contname1=$f_contname[0];
-##   warn	"contname= ${contname}\n";
-##   warn	"f_contname= @f_contname\n";
-##   warn "contname1= ${contname1}\n";
    $inddd=$#f_contname; 
    $tname="";
    if ( $inddd > 0 ){
        $tname=$f_contname[$inddd];
    }
-##   warn	"inddd=${inddd}; tname= ${tname}\n";
    @f_tname=split("_",$tname);
    $ft1=$#f_tname;
    if ( $ft1 > 0 ){
@@ -459,10 +431,6 @@ $listfiles = (sort { -M $a <=> -M $b } @list)[0];
    $fcnt9=$f_contname1[$fcnt1];
    if ( lc($fcnt9) eq lc($tname) ){ $tname="";} 
    $optn="$contname1 $tnumber $tname test";
-   if ( $tname =~ /^.*test$/i ) {
-       $optn="$contname1 $tnumber $tname";
-   }
-##   warn "OPTN $optn\n";
    }
 $aid_message_html = <<EAID;
 <DIV id=hdr0>
@@ -486,7 +454,7 @@ EAID
       $lineT++;
       if ( ${testtesting} == 0 && ${qatesting} == 0 ){
       for ($m=0; $m <= $#e_patterns; $m++){
-        if ( $e_patterns[$m] ne "" && $line =~ /\Q$e_patterns[$m]\E/ && $line !~ /\Q$e_ignore[$m]\E/ && $line !~ /\Q$e_ignore_2[$m]\E/ && $line !~ /\Q$e_ignore_3[$m]\E/ && $line !~ /\Q$e_ignore_4[$m]\E/ && $line !~ /\Q$e_ignore_5[$m]\E/){ 
+        if ( $e_patterns[$m] ne "" && $line =~ /\Q$e_patterns[$m]\E/ && $line !~ /\Q$e_ignore[$m]\E/ && $line !~ /\Q$e_ignore_2[$m]\E/ && $line !~ /\Q$e_ignore_3[$m]\E/ && $line !~ /\Q$e_ignore_4[$m]\E/ && $line !~ /\Q$e_ignore_5[$m]\E){ 
         $e_count[$m]++;
         if ( $lineE[$m] == 0 ) { $lineE[$m]=$lineT; $lineEValue[$m]=$line; }
         }
@@ -524,8 +492,8 @@ EAID
       for ($m=0; $m <= $#e_warning_patterns_minor; $m++){
           if ( $e_warning_patterns_minor[$m] =~ /\.\*/ ) {
               if ( $e_warning_patterns_minor[$m] ne "" && $line =~ /$e_warning_patterns_minor[$m]/ && $line !~ /\Q$e_warning_patterns_minor_ignore[$m]\E/ && $line !~ /\Q$e_warning_patterns_minor_ignore_2[$m]\E/ && $line !~ /\Q$e_warning_patterns_minor_ignore_3[$m]\E/ && $line !~ /\Q$e_warning_patterns_minor_ignore_4[$m]\E/ ){
-              $w_minor_count[$m]++;
-              if ( $lineM[$m] == 0 ) { $lineM[$m]=$lineT; $lineMValue[$m]=$line; }
+	      $w_minor_count[$m]++;
+	      if ( $lineM[$m] == 0 ) { $lineM[$m]=$lineT; $lineMValue[$m]=$line; }
               }
           }
           else {
@@ -548,41 +516,22 @@ EAID
       } 
       }
       else{     
-	  for ($m=0; $m <= $#e_test_failure; $m++){
-	      if ( $e_test_failure[$m] =~ /\.\*/ ) {
-		  if ( $e_test_failure[$m] ne "" && $line =~ /$e_test_failure[$m]/ && $line !~ /$e_test_global_ignore/ && $line !~ /$e_test_failure_ignore[$m]/ && $line !~ /$e_test_failure_ignore_1[$m]/ && $line !~ /$e_test_failure_ignore_2[$m]/ && $line !~ /$e_test_failure_ignore_3[$m]/ && $line !~ /$e_test_failure_ignore_4[$m]/ && $line !~ /$e_test_failure_ignore_5[$m]/){
-		      $ignr=0;
-                      ( $lin1 = $_ ) =~ s/ //g;
-                      for ($ms=0; $ms <= $#e_test_success_addtl; $ms++){
-                          ( $esa1 = $e_test_success_addtl[$ms] ) =~ s/ //g;
-                          if ( $esa1 ne "" && $e_test_success_addtl[$ms] ne " " && $line =~ /\Q$e_test_success_addtl[$ms]\E/ ){
-#                              warn "ESAB $e_test_success_addtl[$ms]\n";
-                              $ignr=1;
-                          }
-                      }
-                      if ( $ignr == 0 ) {
-                          $e_count[$m]++;
-                          if ( $lineE[$m] == 0 ) { $lineE[$m]=$lineT; $lineEValue[$m]=$line; }
-                      }
-		  }
-	      }
-	      else {
-	          if ( $e_test_failure[$m] ne "" && $line =~ /\Q$e_test_failure[$m]\E/ && $line !~ /\Q$e_test_global_ignore\E/ && $line !~ /\Q$e_test_failure_ignore[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_1[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_2[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_3[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_4[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_5[$m]\E/){
-	              $ignr=0;
-	              ( $lin1 = $_ ) =~ s/ //g;
-                      for ($ms=0; $ms <= $#e_test_success_addtl; $ms++){
-                          ( $esa1 = $e_test_success_addtl[$ms] ) =~ s/ //g; 
-		          if ( $esa1 ne "" && $e_test_success_addtl[$ms] ne " " && $line =~ /\Q$e_test_success_addtl[$ms]\E/ ){
-#                              warn "ESAA $e_test_success_addtl[$ms]\n";
-		              $ignr=1;
-                          }
-                      }
-                      if ( $ignr == 0 ) {
-                          $e_count[$m]++;
-		          if ( $lineE[$m] == 0 ) { $lineE[$m]=$lineT; $lineEValue[$m]=$line; }
-		      }
-		  } # if ( $e_test
-	      } #else
+        for ($m=0; $m <= $#e_test_failure; $m++){
+	    if ( $e_test_failure[$m] ne "" && $line =~ /\Q$e_test_failure[$m]\E/ && $line !~ /\Q$e_test_global_ignore\E/ && $line !~ /\Q$e_test_failure_ignore[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_1[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_2[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_3[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_4[$m]\E/ && $line !~ /\Q$e_test_failure_ignore_5[$m]\E/){
+	      $ignr=0;
+	      ( $lin1 = $_ ) =~ s/ //g;
+              for ($ms=0; $ms <= $#e_test_success_addtl; $ms++){
+                  ( $esa1 = $e_test_success_addtl[$ms] ) =~ s/ //g; 
+		  if ( $esa1 ne "" && $e_test_success_addtl[$ms] ne " " && $line =~ /\Q$e_test_success_addtl[$ms]\E/ ){
+#                      warn "ESAA $e_test_success_addtl[$ms]\n";
+		      $ignr=1;
+                  }
+              }
+            if ( $ignr == 0 ) {
+                $e_count[$m]++;
+		if ( $lineE[$m] == 0 ) { $lineE[$m]=$lineT; $lineEValue[$m]=$line; }
+            }
+	  }
 #        print "X $line\n";
 #        print "YY $e_count[$m] XXX $e_test_failure[$m]\n";
       } # for
@@ -593,7 +542,7 @@ EAID
     for ($m=0; $m <= $#e_test_warnings; $m++){
         if ( $e_test_warnings[$m] =~ /\.\*/ ) {
             if ( $e_test_warnings[$m] ne "" && $line =~ /$e_test_warnings[$m]/ && $line !~ /\Q$e_test_global_ignore\E/){
-            $w_count[$m]++;
+	    $w_count[$m]++;
             if ( $lineW[$m] == 0 ) { $lineW[$m]=$lineT; $lineWValue[$m]=$line; }
             }
         }
@@ -603,7 +552,7 @@ EAID
             if ( $lineW[$m] == 0 ) { $lineW[$m]=$lineT; $lineWValue[$m]=$line; }
             }
         }
-    } # for    
+    } # for
 
     for ($m=0; $m <= $#e_test_warnings_minor; $m++){
         if ( $e_test_warnings_minor[$m] ne "" && $line =~ /\Q$e_test_warnings_minor[$m]\E/){
@@ -732,7 +681,7 @@ EAID
                 $mess="No problems found";
                 if ( $light == 1 ) {
                     $mess="Test succeeded, based on the exit code (error highlighting off)";
-                }
+		}
                 $linkline=0;
                 $linkvalue="";
                 $problems=0;
@@ -872,30 +821,24 @@ if ( $filehtml ne "" ){
     print FG "<div id=hdr1>\n";
     if ( $testtesting == 0 && $qatesting == 0 ){
 #    print FG "<a href=\"https://svnweb.cern.ch/trac/atlasoff/browser/${pkgname_full}/tags/${tag}\"><b>SVN browser link</b></a><BR>\n";
-#    print FG "<b><i>Placeholder for a link to GitLab</i></b><BR>\n"; 
+    print FG "<b><i>Placeholder for a link to GitLab</i></b><BR>\n"; 
 #    warn "BROWSER LINK: <a href=\"https://svnweb.cern.ch/trac/atlasoff/browser/${pkgname_full}/tags/${tag}\"><b>SVN browser link</b></a>\n";
-      if ( $ARDOC_NINJALOG ne "" ){
-        if ( -f $ARDOC_NINJALOG ) {
-          $nninja=`cat $ARDOC_NINJALOG | wc -l`;
-          if ($?) {
-            $nothing_happens=1;
-#            warn "ardoc_errortester.pl: failed to count lines in ninja logfile $ARDOC_LOGDIR\n";
-          } else {
-            chomp($nninja);
-            $nninja=int($nninja);
-#            warn "ardoc_errortester.pl: line count $nninja in ninja logfile $ARDOC_LOGDIR\n";                             
-            if ( $nninja > 1 ){
-                $release="${ARDOC_PROJECT_RELNAME}";
-                $WLogdir="ARDOC_Log_${release}";
-                $ARDOC_NINJALOGBASE = basename(${ARDOC_NINJALOG});
-                $ARDOC_NINJAURL="${ARDOC_WEBPAGE}/${WLogdir}/${ARDOC_NINJALOGBASE}";
-                print FG "<b>Ninja logfile</b> can be accessed at <a href=\"$ARDOC_NINJAURL\">this address</a><BR>\n";
-            }
-          }
-        }
-      }
     }
     print FG "<b>Original log file:</b><CODE> $file </CODE><BR>\n";
+#    print FG "copied to: <CODE> ${ARDOC_COPY_HOME}/${ARDOC_PROJECT_RELNAME_COPY}/ARDOC_area/${ARDOC_TESTLOGDIRBASE}/$filebase1 </CODE>\n";
+    if ( $ARDOC_WEB_HOME ne "" ){
+	$webloc="${ARDOC_WEB_HOME}/${ARDOC_PROJECT_RELNAME_COPY}/ARDOC_area/${ARDOC_TESTLOGDIRBASE}/$filebase1";
+#	print FG "<BR>\n";
+#	print FG "<a href=\"${webloc}\"><b>Web access to the log file</b></a>\n";
+    }
+    if ( $ARDOC_WEBPAGE ne "" ){
+        $websum_d="http://atlas-nightlies-browser.cern.ch/~platinum/nightlies/info?tp=${type_in_url}&nightly=${ARDOC_NIGHTLY_NAME}&rel=${ARDOC_PROJECT_RELNAME_COPY}&ar=${ARDOC_ARCH}&proj=${ARDOC_PROJECT_NAME}";
+        $websum="${ARDOC_WEBPAGE}/ardoc_${type_in_html}summary_${ARDOC_PROJECT_RELNUMB_COPY}.html";
+#	print FG "<BR>\n";
+#        print FG "<a href=\"${websum_d}\"><b>Release ${type_in_html} summary</b></a>\n";
+#        print FG "<BR>\n";
+#        print FG "<a href=\"${websum}\"><b>Release ${type_in_html} summary (old static version)</b></a>\n";
+    }
     print FG "</div>\n <P><PRE>\n";
     @allowed_1=();
     @allowed_2=();
@@ -905,13 +848,28 @@ if ( $filehtml ne "" ){
     $middle_part1=25;
     $middle_part2=25;
     $last_part=2000;
-    if ( $testtesting == 1 || $qatesting == 1 ){
-	$total_ln=100000;
-        $first_part=60000;
-        $middle_part1=25;
-        $middle_part2=25;
-        $last_part=40000;
+    if ( $testtesting != 0 ){
+      if ( "${MR_TRAINING_DOMAIN}" ne "" ){
+        print FG "Note: this MR training job probes domain ${MR_TRAINING_DOMAIN}, git branch ${MR_CURRENT_GIT_BRANCH}\n";
+      }
+      if ( $file =~ /^.*unit-tests.*$/ ){ 
+        print FG "Note: there is limit of 75000 lines for this logfile. Excess lines (if any) are truncated.\n";  
+        $total_ln=75000;
+        $first_part=40000;
+        $middle_part1=250;
+        $middle_part2=250;
+        $last_part=35000; 
+      }
+      else {
+        print FG "Note: there is limit of 20000 lines for this logfile. Excess lines (if any) are truncated.\n";
+        $total_ln=20000;
+        $first_part=12000;
+        $middle_part1=100;
+        $middle_part2=100;
+        $last_part=8000;        
+      }
     }
+
     $all_i++;
     $allowed_1[0][$all_i]=0;
 #    warn "TTTT $lineT, $lineMM, $lineWW, $lineEE,  $total_ln\n";
@@ -963,8 +921,11 @@ if ( $filehtml ne "" ){
 	    $replacement_string = join '', keys %replacements;
             foreach $f_line (@first_arr){
 #                $encode_line = uri_escape($f_line);
-                ( $encode_line = $f_line) =~ s/([\Q$replacement_string\E])/$replacements{$1}/g;
-#                if ( $f_line =~ /</ ){ warn "RRR $encode_line"; }
+                 $encode_line = $f_line;
+                 if ( $f_line !~ /^.*CI_TEST.*href.*$/ && $f_line !~ /^.*test.*tailoring.*href.*$/ ) { 
+                   ( $encode_line = $f_line) =~ s/([\Q$replacement_string\E])/$replacements{$1}/g;
+#                  if ( $f_line =~ /</ ){ warn "RRR $encode_line"; }
+                 }
 		print FG "${encode_line}";
 	    }
 	}
@@ -989,21 +950,27 @@ if ( $filehtml ne "" ){
 		if ( $ncount_s[0] == 1 && $ncount_line > 1 ) {
 		    print FG <<DOTT;
 <DIV ID=hdr>................................................................<BR>
-.....LINES TRUNCATED.....<BR>
+.....LINES TRUNCATED <BR>
+.....first $first_part lines, bottom $last_part lines <BR>
+.....as well as lines around error messsage are displayed <BR>
 ................................................................
 </DIV>
 DOTT
                 }
                 if ($line_ok_1 && $line_ok_2) {
                 $escp=$_;
-                $escp =~ s/([\Q$replacement_string\E])/$replacements{$1}/g; 
+                if ( $escp !~ /^.*CI_TEST.*href.*$/ && $escp !~ /^.*test.*tailoring.*href.*$/ ) {
+                  $escp =~ s/([\Q$replacement_string\E])/$replacements{$1}/g; 
+                }
                 print FG "${escp}";
 #                if ( $_ =~ /</ ){ warn "RRR $escp"; }
                 }
             }
             else{
                 $escp=$_;
-                $escp =~ s/([\Q$replacement_string\E])/$replacements{$1}/g; 
+                if ( $escp !~ /^.*CI_TEST.*href.*$/ && $escp !~ /^.*test.*tailoring.*href.*$/ ) {
+                  $escp =~ s/([\Q$replacement_string\E])/$replacements{$1}/g; 
+                }
                 print FG "<div id=\"prblm\">${escp}</div>";
 #                if ( $_ =~ /</ ){ warn "RRR $escp"; }
                 $ncount_s[0]++;
@@ -1025,12 +992,12 @@ close (FG);
 
 #copy generated htmllog to ${ARDOC_WEBDIR}
 $filehtml_base=basename($filehtml);
-$copy_html="${ARDOC_WEBDIR}/ARDOC_Log_${ARDOC_PROJECT_RELNAME}/${filehtml_base}";
+$copy_html="${ARDOC_WEBDIR}/ARDOC_Log_${ARDOC_PROJECT_RELNAME_COPY}/${filehtml_base}";
 if ( ${testtesting} != 0 ){
-    $copy_html="${ARDOC_WEBDIR}/ARDOC_TestLog_${ARDOC_PROJECT_RELNAME}/${filehtml_base}";
+    $copy_html="${ARDOC_WEBDIR}/ARDOC_TestLog_${ARDOC_PROJECT_RELNAME_COPY}/${filehtml_base}";
 }
 elsif ( ${qatesting} != 0 ){
-    $copy_html="${ARDOC_WEBDIR}/ARDOC_QALog_${ARDOC_PROJECT_RELNAME}/${filehtml_base}";
+    $copy_html="${ARDOC_WEBDIR}/ARDOC_QALog_${ARDOC_PROJECT_RELNAME_COPY}/${filehtml_base}";
 }
 #warn "ardoc_errortester: cp -Rp $filehtml $copy_html\n";
     system("cp -Rp $filehtml $copy_html");

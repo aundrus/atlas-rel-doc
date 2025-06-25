@@ -21,6 +21,7 @@ echo "   Starting ARDOC error analysis $DD"
 echo "------------------------------------------------------------"
 prevdir=`pwd`
 
+export ARDOC_PROJECT_RELNAME_COPY=$ARDOC_PROJECT_RELNAME
 if [ ! -f $ARDOC_WORK_AREA/ardoc_loghandler_report ]; then touch $ARDOC_WORK_AREA/ardoc_loghandler_report; fi
 cd ${ARDOC_RELHOME}/${ARDOC_PROJECTBUILD_DIR}
 source ${ARDOC_WORK_AREA}/ardoc_errorhandler_gen; stat=$?
@@ -31,9 +32,9 @@ export ARDOC_MAIL="no"
 export ARDOC_MAIL_UNIT_TESTS="no"
 export ARDOC_MAIL_INT_TESTS="no"
 export ARDOC_MAIL_QA_TESTS="no"
-echo "ardoc_errorhandler: environment START"
-printenv | grep ARDOC_
-echo "ardoc_errorhandler: environment END"
+
+sffx="_${ARDOC_PROJECT_RELNUMB_COPY}"
+if [ "${ARDOC_PROJECT_RELNUMB_COPY}" = "" ]; then sffx=""; fi
 
 ${ARDOC_HOME}/ardoc_errorhandler.pl; stat=$?
 

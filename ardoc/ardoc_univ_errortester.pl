@@ -62,11 +62,13 @@ ${test_nm} Logfile
 }
 
 my $ARDOC_HOME="$ARDOC_HOME";
+my $ARDOC_COPY_HOME="$ARDOC_COPY_HOME";
 my $ARDOC_WORK_AREA="$ARDOC_WORK_AREA";
+my $ARDOC_PROJECT_RELNAME_COPY = "$ARDOC_PROJECT_RELNAME_COPY";
 my $ARDOC_LOGDIR = "$ARDOC_LOGDIR";
 my $ARDOC_WEBDIR = "$ARDOC_WEBDIR";
+my $ARDOC_WEBPAGE = "$ARDOC_WEBPAGE";
 my $ARDOC_WEB_HOME = "$ARDOC_WEB_HOME";
-my $ARDOC_PROJECT_RELNAME = "$ARDOC_PROJECT_RELNAME";
 $ARDOC_LOGDIR = dirname(${ARDOC_LOG});
 $ARDOC_LOGDIRBASE = basename(${ARDOC_LOGDIR});
 #
@@ -93,27 +95,32 @@ while ($#ARGV>=0) {
     }
 }
 my @e_success = (" ", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-my @e_warning = ("package not found", "CMake Warning", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+my @e_warning = ("package not found", "CMake Warning", "CMake Deprecation Warning", "> Warning:", "Warning:.*logfile.*not\savailable", "logfile not found", "CVBFGG");
 my @e_warning_ignore = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_warning_ignore_1 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_warning_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_warning_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-my @e_warning_patterns_minor = ("CVBFGG", "svn:", "Warning: the last line", "Warning: Unused class rule",'Warning:\s.*rule', "CVBFGG", "CVBFGG");
-my @e_patterns = ("can not", "permission denied", "Disk quota exceeded", "ardoc_copy: problem", "CMake Error", "CVBFGG", "cmake: command not found");
+my @e_warning_patterns_minor = ("CVBFGG", "Could.*NOT.*find", "Warning: the last line", "Warning: Unused class rule",'Warning:\s.*rule', "CVBFGG", "CVBFGG");
+my @e_patterns = ("can not", "permission denied", "Disk quota exceeded", "CMake Error", "not remade because of errors", "connection problem", "cmake: command not found");
 my @e_ignore = ("ERRORS: 0", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 my @e_patterns_correlators = (" ", " ", " ", " ", " ", " ", " ");
-if ( $option eq "inst" ){
-    @e_warning = ("package not found", "CVBFGG", "Errors/Problems found", "> Warning:", "permission denied", "Disk quota exceeded", "CVBFGG");
-    @e_patterns = (": error:", "CMake Error", "No rule to make target", "raceback (most recent", "CVBFGG", "error: ld", "error: Failed to execute");
-    @e_ignore = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-}
-    @e_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-    @e_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+#USE the same patterns for option inst
+#if ( $option eq "inst" ){
+##    @e_warning = ("package not found", "CVBFGG", "Errors/Problems found", "> Warning:", "permission denied", "Disk quota exceeded", "CVBFGG");
+##    @e_patterns = (": error:", "CMake Error", "No rule to make target", "raceback (most recent", "CVBFGG", "error: ld", "connection problem");
+##    @e_ignore = ("collect2: error:", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "collect2: error:", "CVBFGG");
+##    @e_ignore_2 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+##    @e_ignore_3 = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+#    @e_warning = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+#    @e_warning_patterns_minor = ("CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
+#    @e_patterns = ("result FAILURE", "can not", "permission denied", "Disk quota exceeded", "CMake Error", "not remade because of errors", "cmake: command not found");
+#    @e_ignore = ("CVBFGG", "ERRORS: 0", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG"); 
+#}
 if ( $option eq "checkout" ){
     @e_warning = ("package not found", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
-    @e_patterns = ("can not", "permission denied", "Disk quota exceeded", "checkout.pl: problem", "persistent checkout problem", "pb occured", "CVBFGG");
+    @e_patterns = ("can not", "permission denied", "Disk quota exceeded", "Timeout after", "ERROR:", "pb occured", "connection problem");
     @e_ignore = ("ERRORS: 0", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
 }
 my @e_count = (0,0,0,0,0,0,0);
@@ -149,25 +156,33 @@ while (<FL>){
       }
 
       for ($m=0; $m <= $#e_warning; $m++){
-          if ( $e_warning[$m] ne "" && $line =~ /\Q$e_warning[$m]\E/ && $line !~ /\Q$e_warning_ignore[$m]\E/ && $line !~ /\Q$e_warning_ignore_1[$m]\E/ && $line !~ /\Q$e_warning_ignore_2[$m]\E/ && $line !~ /\Q$e_warning_ignore_3[$m]\E/ ){
-               $w_count[$m]++;
-               if ( $lineW[$m] == 0 ) { $lineW[$m]=$lineT; $lineWValue[$m]=$line; }
+          if ( $e_warning[$m] =~ /\.\*/ ) {
+              if ( $e_warning[$m] ne "" && $line =~ /$e_warning[$m]/ && $line !~ /\Q$e_warning_ignore[$m]\E/ && $line !~ /\Q$e_warning_ignore_1[$m]\E/ && $line !~ /\Q$e_warning_ignore_2[$m]\E/ && $line !~ /\Q$e_warning_ignore_3[$m]\E/ ){
+		  $w_count[$m]++;
+		  if ( $lineW[$m] == 0 ) { $lineW[$m]=$lineT; $lineWValue[$m]=$line; }
+	      }
+	  }
+          else {
+              if ( $e_warning[$m] ne "" && $line =~ /\Q$e_warning[$m]\E/ && $line !~ /\Q$e_warning_ignore[$m]\E/ && $line !~ /\Q$e_warning_ignore_1[$m]\E/ && $line !~ /\Q$e_warning_ignore_2[$m]\E/ && $line !~ /\Q$e_warning_ignore_3[$m]\E/ ){
+                   $w_count[$m]++;
+                   if ( $lineW[$m] == 0 ) { $lineW[$m]=$lineT; $lineWValue[$m]=$line; }
+	      }
           }
       }
 
       for ($m=0; $m <= $#e_warning_patterns_minor; $m++){
           if ( $e_warning_patterns_minor[$m] =~ /\.\*/ ) {
               if ( $e_warning_patterns_minor[$m] ne "" && $line =~ /$e_warning_patterns_minor[$m]/ ){
-                  $w_minor_count[$m]++;
-                  if ( $lineM[$m] == 0 ) { $lineM[$m]=$lineT; $lineMValue[$m]=$line;}
+    	          $w_minor_count[$m]++;
+	          if ( $lineM[$m] == 0 ) { $lineM[$m]=$lineT; $lineMValue[$m]=$line;}
               }
-          }
+	  }
           else {
               if ( $e_warning_patterns_minor[$m] ne "" && $line =~ /\Q$e_warning_patterns_minor[$m]\E/ ){
                   $w_minor_count[$m]++;
                   if ( $lineM[$m] == 0 ) { $lineM[$m]=$lineT; $lineMValue[$m]=$line;}
-              }
-          }
+	      }
+	  }
       }
 
       for ($m=0; $m <= $#e_success; $m++){
@@ -281,7 +296,7 @@ $aid_message="";
 $optn="$option";
 if ( $optn eq "down" ){ $optn="kit installation";} 
 if ( $optn eq "conf" ){ $optn="cmake build configuration";}
-if ( $optn eq "inst" ){ $optn="cmake build installation";}
+if ( $optn eq "inst" ){ $optn="externals build";}
 if ( $optn eq "checkout" ){ $optn="code checkout";}
 $aid_message_html = <<EAID;
 <DIV id=hdr0>
@@ -364,10 +379,10 @@ if ( $filehtml ne "" ){
   print FG "$aid_message_html";
   print FG "<div id=hdr1>\n";
   print FG "original log file: <CODE> $filename </CODE><BR>\n";
-  if ( $ARDOC_WEB_HOME ne "" ){
-      $webloc="${ARDOC_WEB_HOME}/${ARDOC_PROJECT_RELNAME}/ARDOC_area/${ARDOC_LOGDIRBASE}/$filebase1";
-      print FG "<BR>\n";
-      print FG "<a href=\"${webloc}\"><b>web accessible location</b></a>\n";  
+  if ( $ARDOC_WEBPAGE ne "" ){
+      $webloc="${ARDOC_WEBPAGE}/ARDOC_Log_${ARDOC_PROJECT_RELNAME_COPY}/$filebase1";
+#      print FG "<BR>\n";
+      print FG "<a href=\"${webloc}\"><b>text logfile (full size)</b></a>\n";  
   }
   print FG "</div>\n <P>\n";
   @allowed_1=();
@@ -447,7 +462,7 @@ DOTT
 #copy generated htmllog to ${ARDOC_WEBDIR}
 if ( $option eq "kit" || $option eq "down" || $option eq "rpm" || $option eq "pacball" ){  
 $filehtml_base=basename($filehtml);
-$copy_html="${ARDOC_WEBDIR}/ARDOC_Log_${ARDOC_PROJECT_RELNAME}/${filehtml_base}";
+$copy_html="${ARDOC_WEBDIR}/ARDOC_Log_${ARDOC_PROJECT_RELNAME_COPY}/${filehtml_base}";
 #warn "ardoc_copy_errortester: cp -Rp $filehtml $copy_html\n";
 system("cp -Rp $filehtml $copy_html");
 }

@@ -17,7 +17,9 @@ use Env;
 use File::Basename;
 
 my $ARDOC_HOME="$ARDOC_HOME";
+my $ARDOC_COPY_HOME="$ARDOC_COPY_HOME";
 my $ARDOC_WORK_AREA="$ARDOC_WORK_AREA";
+my $ARDOC_PROJECT_RELNAME_COPY = "$ARDOC_PROJECT_RELNAME_COPY";
 my $ARDOC_LOG = "$ARDOC_LOG";
 my $ARDOC_WEBDIR = "$ARDOC_WEBDIR";
 my $ARDOC_WEB_HOME = "$ARDOC_WEB_HOME";
@@ -34,6 +36,17 @@ $ARDOC_LOGDIRBASE = basename(${ARDOC_LOGDIR});
 
 $filename=$ARGV[0];
 $option="oracle";
+#
+#while ($#ARGV>=0) {
+#    $_ = $ARGV[0];
+#    if ( $_ =~ /^-/ ){
+#        /^--kit$/ && do { $option="kit"; };
+#        ( /--kitdown/ || /--down/ ) && do { $option="down"; };
+#        shift;  
+#    } else {
+#	$filename=$_; shift;
+#    }
+#}
 
 @e_patterns = ("ORA-", "permission denied", "Disk quota exceeded", ": Error:", "CVBFGG");
 my @e_ignore = ("CVBFGH", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG", "CVBFGG");
