@@ -1,29 +1,34 @@
 import re
 import os
 import sys
-import getpass,logging
+import getpass
 import platform
 import cx_Oracle
 from pprint import pprint
 import datetime
 import smtplib
-
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-logging.info("ardoc_oracle_interface_script.py: Python version: " + platform.python_version())
-logging.info("ardoc_oracle_interface_script.py: cx_Oracle version: " + cx_Oracle.version)
-logging.info("ardoc_oracle_interface_script.py: Oracle client: " + str(cx_Oracle.clientversion()).replace(', ','.'))
+print(("ardoc_oracle_starter.py: Python version: " + platform.python_version()))
+print(("ardoc_oracle_starter.py: cx_Oracle version: " + cx_Oracle.version))
+print(("ardoc_oracle_starter.py: Oracle client: " + str(cx_Oracle.clientversion()).replace(', ','.')))
 home=""
 nname=""
 ngroup="N/A"
+valmode="N/A"
 incrmode="N/A"
+parray=""
 if 'HOME' in os.environ : home=os.environ['HOME']
 if 'ARDOC_NIGHTLY_NAME' in os.environ : nname=os.environ['ARDOC_NIGHTLY_NAME']
 if nname == "":
-    logging.error("ardoc_oracle_interface_script.py: Error: ARDOC_NIGHTLY_NAME is not defined")  
+    print("ardoc_oracle_starter.py: Error: ARDOC_NIGHTLY_NAME is not defined")  
     sys.exit(1)
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
 if 'ARDOC_NIGHTLY_GROUP' in os.environ : ngroup=os.environ['ARDOC_NIGHTLY_GROUP']
+if 'ARDOC_VAL_MODE' in os.environ : valmode=os.environ['ARDOC_VAL_MODE']
 if 'ARDOC_INC_BUILD' in os.environ : incrmode=os.environ['ARDOC_INC_BUILD']
+if 'ARDOC_PROJECT_ARRAY' in os.environ : parray=os.environ['ARDOC_PROJECT_ARRAY']
+scratch_indicator=os.environ.get('ARDOC_SCRATCH_INDICATOR','').strip()
+target_branch=os.environ.get('ARDOC_TARGET_BRANCH','UNKNOWN').strip()
+print("ardoc_oracle_starter.py: Info: TARGET BRANCH: ",target_branch)
 ardoc_gen_config_area=os.environ.get('ARDOC_GEN_CONFIG_AREA','')
 ardoc_arch=os.environ.get('ARDOC_ARCH','')
 arch_a=re.split(r'\-',ardoc_arch)
@@ -31,26 +36,33 @@ arch=arch_a[0]
 osys=arch_a[1]
 comp=arch_a[2]
 opt=arch_a[3]
-role=os.environ.get('ARDOC_NIGHTLY_ROLE','main')
+role=os.environ.get('ARDOC_NIGHTLY_ROLE','master')
 if len(role) > 6: role=role[0:6]
 #
-relname=os.environ.get('ARDOC_PROJECT_RELNAME','')
+relname=os.environ.get('ARDOC_PROJECT_RELNAME_COPY','')
 reltype="NIT"
-tcrel='N/A'; tcrelbase='N/A'
+relstbb=os.environ.get('ARDOC_STABLE_RELEASE','')
+if relstbb == 'yes': reltype="STB"
+tcrel=os.environ.get('ARDOC_ATLAS_RELEASE','')
+tcrelbase=os.environ.get('ARDOC_ATLAS_ALT_RELEASE','')
+validation=os.environ.get('ARDOC_VAL_MODE','')
 nightly_group=os.environ.get('ARDOC_NIGHTLY_GROUP','N/A')
 nightly_name=os.environ.get('ARDOC_NIGHTLY_NAME','N/A')
-buildarea1=os.environ.get('ARDOC_RELHOME','')
+buildarea1=os.environ.get('ARDOC_PROJECT_HOME','')
 buildarea=os.path.dirname(buildarea1)
-#NO COPY AREA FOR NOW
-copyarea = "N/A"
-#copyarea1=os.environ.get('ARDOC_COPY_HOME','')
-#copyarea=os.path.dirname(copyarea1)
+copyarea1=os.environ.get('ARDOC_COPY_HOME','')
+copyarea=os.path.dirname(copyarea1)
 if buildarea == "": buildarea = 'N/A'
-#if copyarea == "": copyarea='N/A'
+if copyarea == "": copyarea='N/A'
+cmakevers=os.environ.get('CMAKE_VERSION','')
 gitmrlink=os.environ.get('MR_GITLAB_LINK','')
-# BUILD TOOL unconditional CMAKE for now
+gitmrhash=os.environ.get('MR_GITHASH','')
 btool='CMAKE'
-bvers=''
+bvers=cmakevers
+hostnam=os.uname()[1]
+hostnam_b=re.split(r'\.',hostnam)[0]
+hostnam_n=re.sub('[^0-9]','',hostnam_b)
+hostnam_nn=hostnam_n.lstrip('0')
 ts_now = datetime.datetime.now()
 now_f=datetime.datetime.strftime(ts_now,'%Y-%m-%d %H:%M')
 t_epoch=os.environ.get('ARDOC_EPOCH','')
@@ -59,7 +71,7 @@ if t_epoch != '':
    fdtt=float(t_epoch)
    ts=datetime.datetime.fromtimestamp(fdtt)
 relnstamp=ts.strftime("%Y-%m-%dT%H%M")
-logging.info("ardoc_oracle_interface_script.py: date: '%s' release name stamp: '%s'",ts,relnstamp)
+print("ardoc_oracle_starter.py: date: ",ts," release name stamp: ",relnstamp)
 #
 ardoc_http=os.environ.get('ARDOC_HTTP','')
 coma='bash -c \'(unset ARDOC_SUFFIX;ARDOC_PROJECT_NAME=\'PRJ\'; $ARDOC_HOME/ardoc_project_suffix_creator.pl)\''
@@ -67,15 +79,17 @@ sff=os.popen(coma,'r')
 ardoc_suffix=sff.readline()
 #    print "SFF",ardoc_suffix
 ardoc_webpage=ardoc_http+'/'+ngroup+'WebArea/ardoc_web_area'+ardoc_suffix
-logging.info("ardoc_oracle_starter.py: ardoc_webpage: '%s'",ardoc_webpage)
-ardoc_webarea=os.path.dirname(ardoc_webpage)
-logging.info("ardoc_oracle_starter.py: ardoc_webarea: '%s'",ardoc_webarea)
-ardoc_http_build=os.environ.get('ARDOC_HTTP_BUILD','')
-logging.info("ardoc_oracle_starter.py: ardoc_http_build: '%s'",ardoc_http_build)
+print("ardoc_oracle_starter.py: ardoc_webpage: ",ardoc_webpage)
 #
+valmode_d={ 'doubleyes' : 'dbl', 'none' : 'non', 'no' : 'non' }
+valmode_s=valmode_d.get(valmode,valmode)
+if len(valmode_s) > 3: valmode_s=valmode_s[0:3]
 ntype="other"
-#    ntype="patch"
-#    ntype="full"
+lnumber=len(re.split(r'\s+',parray))
+if lnumber == 1:
+    ntype="patch"
+elif  lnumber > 9:
+    ntype="full"
 cFN="/afs/cern.ch/atlas/software/dist/nightlies/cgumpert/TC/OW_crdntl"
 lne=open(cFN,'r')
 lne_res=lne.readline()
@@ -84,8 +98,8 @@ lnea=re.split(r'\s+',lne_res)
 accnt,pwf,clust=lnea[0:3]
 #print "XXXX",accnt,pwf,clust
 connection = cx_Oracle.connect(accnt,pwf,clust)
-logging.info("ardoc_oracle_interface_script.py: Oracle DB version: '%s'",connection.version)
-#print ("ardoc_oracle_interface_script.py: Oracle client encoding: " + connection.encoding)
+print(("ardoc_oracle_starter.py: Oracle DB version: " + connection.version))
+#print ("ardoc_oracle_starter.py: Oracle client encoding: " + connection.encoding)
 connection.clientinfo = 'python 2.6 @ home'
 connection.module = 'cx_Oracle test_ARDOC.py'
 connection.action = 'TestArdocJob'
@@ -98,9 +112,9 @@ try:
     connection.ping()
 except cx_Oracle.DatabaseError as exception:
     error, = exception.args
-    logging.info("ardoc_oracle_interface_script.py: Database connection error: '%s' '%s' '%s'", error.code, error.offset, error.message)
+    print(("ardoc_oracle_starter.py: Database connection error: ", error.code, error.offset, error.message))
 else:
-    logging.info("ardoc_oracle_interface_script.py: Connection is alive!")
+    print("ardoc_oracle_starter.py: Connection is alive!")
 cursor.execute("ALTER SESSION SET current_schema = "+oracle_schema)
 # Cancel long running transaction
 #  connection.cancel()
@@ -118,8 +132,8 @@ WHEN NOT MATCHED THEN insert values
 , :ntype
 , :valmode_s
 , :incrmode_trim, :stat, :btype, :sttime, :stuser )"""
-dict_p={'nname' : nname,'ngroup' :ngroup,'ntype' : ntype,'valmode_s' : 'N/A','incrmode_trim' : incrmode_trim,'stat' : 0, 'btype' : '', 'sttime' : ts_now, 'stuser' : ''} 
-#print "CMND NN", cmnd, " dict ",dict_p 
+dict_p={'nname' : nname,'ngroup' :ngroup,'ntype' : ntype,'valmode_s' : valmode_s,'incrmode_trim' : incrmode_trim,'stat' : 0, 'btype' : '', 'sttime' : ts_now, 'stuser' : ''} 
+#print "CMND", cmnd, " dict ",dict_p 
 cursor.prepare(cmnd)
 cursor.setinputsizes(sttime=cx_Oracle.TIMESTAMP)
 cursor.execute(None, dict_p)
@@ -128,9 +142,9 @@ cmnd="""
 SELECT nid,nname,ngroup,ntype,val,incr,stat,stuser FROM NIGHTLIES where nname = :nname"""
 cursor.execute(cmnd,{'nname' : nname})
 result = cursor.fetchall()
-if len(result) < 1: logging.error("ardoc_oracle_starter.py: absent nightly name: '%s'",nname); sys.exit(1)
+if len(result) < 1: print("ardoc_oracle_starter.py: absent nightly name: ",nname); sys.exit(1)
 for row in result:
-    logging.info("ardoc_oracle_interface_script.py: '%s'",row)
+    print("ardoc_oracle_starter.py:",row)
 row=result[-1]
 nightly_id=row[0]
 statn=row[6]
@@ -138,7 +152,34 @@ stusern=row[7]
 relnmaster=""
 if stusern == None : stusern="N/A"  
 #
-cmnd="""
+if role == 'master':
+    mail_body="===============================================================\n"
+    mail_body=mail_body+"ARDOC restarted jobs for the nightly branch "+nname+"\n"
+    mail_body=mail_body+"through on-demand interface at "+now_f+"\n"
+    mail_body=mail_body+"at request of: "+stusern+"(CERN user name)\n"
+    mail_body=mail_body+"===============================================================\n"
+    if statn == 1 or statn == 3:
+        subj = "ARDOC restarted "+nname+" nightly"
+        sender = 'atnight@mail.cern.ch'
+        receivers = ['undrus@bnl.gov']
+        if stusern != "" and stusern.lower() != "none" and stusern.lower() != "n/a":
+           receivers.append(stusern+'@mail.cern.ch')
+        mail_body=mail_body+"This mail is sent to "+", ".join(receivers)+"\n"
+        mail_body=mail_body+"===============================================================\n"
+        message = """From: Atlas Nightlybuild <atnight@mail.cern.ch>
+To: %s
+Subject: %s
+%s
+""" % (", ".join(receivers), subj,mail_body)
+        try:
+            smtpObj = smtplib.SMTP('localhost')
+            smtpObj.sendmail(sender, receivers, message)
+            print("ardoc_oracle_starter.py: SENDING MESSAGE TO ",receivers)
+            print("--->",message)
+        except:
+            print("ardoc_oracle_starter.py: Warning: unable to send email")
+
+    cmnd="""
 insert into releases (RELID,NID,NAME,TYPE,TCREL,TCRELBASE,URL2LOG,RELTSTAMP,VALIDATION,RELNSTAMP,GITMRLINK,RELNMASTER) 
 values ( (select max(a.relid)+1 from releases a), :nightly_id
 , :relname
@@ -151,47 +192,54 @@ values ( (select max(a.relid)+1 from releases a), :nightly_id
 , :relnstamp
 , :gitmrlink
 , :relnmaster )"""
-dict_p={'nightly_id' : nightly_id,'relname' : relname,'reltype' : reltype,'tcrel' : tcrel,'tcrelbase' : tcrelbase, 'ardoc_webpage' : ardoc_webpage, 't_val' : ts_now, 'validation' : '', 'relnstamp' : relnstamp, 'gitmrlink' : gitmrlink, 'relnmaster' : relnmaster}
-logging.info("CMND  '%s' dict  '%s'",cmnd,dict_p)
-cursor.prepare(cmnd)
-cursor.setinputsizes(t_val=cx_Oracle.TIMESTAMP)
-cursor.execute(None, dict_p)
-logging.info("ardoc_oracle_starter.py: bindvars  '%s'", cursor.bindvars)
-#
-ts_1=ts - datetime.timedelta(days=1)
-# FOR NOW ROLE is not taken into account
-logging.info("ardoc_oracle_starter.py: tstamps: '%s' '%s' '%s'",ts,ts_1,role)
+    dict_p={'nightly_id' : nightly_id,'relname' : relname,'reltype' : reltype,'tcrel' : tcrel,'tcrelbase' : tcrelbase, 'ardoc_webpage' : ardoc_webpage, 't_val' : ts, 'validation' : validation, 'relnstamp' : relnstamp, 'gitmrlink' : gitmrlink, 'relnmaster' : relnmaster}
+    print("CMND", cmnd, " dict ",dict_p)
+    cursor.prepare(cmnd)
+    cursor.setinputsizes(t_val=cx_Oracle.TIMESTAMP)
+    cursor.execute(None, dict_p)
+    print('ardoc_oracle_starter.py: bindvars ', cursor.bindvars)
+ts_1=ts
+if role != 'master':
+    ts_1=ts - datetime.timedelta(days=2)
+print('ardoc_oracle_starter.py: tstamps:',ts,ts_1,role)
 cmnd="""
-SELECT RELID,reltstamp FROM RELEASES WHERE nid = :nightly_id and name = :relname and reltstamp >= :t_val order by reltstamp desc"""
-logging.info("CMND '%s', t_val:  '%s' nightly_id: '%s' relname '%s'",cmnd,ts_1,nightly_id,relname)
+SELECT RELID,reltstamp FROM RELEASES WHERE nid = :nightly_id and name = :relname and reltstamp > :t_val order by reltstamp"""
+print("CMND", cmnd, {'t_val' : ts_1,'nightly_id' : nightly_id,'relname' : relname})
 cursor.execute(cmnd, {'t_val' : ts_1,'nightly_id' : nightly_id,'relname' : relname})
 result = cursor.fetchall()
 pprint(result)
 lresult=len(result)
 relid_j=""
 ts_j=""
-# DOUBLE CHECK RELEASE ENTRY
-for row in result:
-#    if row[1] == ts:
-        logging.info("ardoc_oracle_starter.py: relid found: '%s' XX '%s' '%s'",row[0],row[1], ts)
-        relid_j=row[0]; ts_j=row[1]
-        break
+if role == 'master':
+    for row in result:
+        if row[1] == ts:
+            print("ardoc_oracle_starter.py: relid found:",row[0],' XX ',row[1], ts)
+            relid_j=row[0]; ts_j=row[1]
+            break
+else:
+    if lresult > 0:
+        rowmax=result[-1]
+        ts_2=ts - datetime.timedelta(days=2)
+        if rowmax[1] > ts_2:
+            print("ardoc_oracle_starter.py: relid found:",rowmax[0],' XX ',rowmax[1],' > ', ts_2)
+            relid_j=rowmax[0]; ts_j=rowmax[1]
 if relid_j == "":            
-    logging.error("ardoc_oracle_starter.py: Error: relid for jobs table not found")
+    print("ardoc_oracle_starter.py: Error: relid for jobs table not found")
     sys.exit(1)
 #    
-#tdd_j=ts_j.date()
-#JOBID defined from ARDOC_EPOCH
-tdd_j=ts
+tdd_j=ts_j.date()
 #print tdd_j.strftime("%Y%m%d"), nightly_id
 jid_base=int(tdd_j.strftime("%Y%m%d"))*10000000+int(nightly_id)*1000
 jid_max=int(tdd_j.strftime("%Y%m%d"))*10000000+int(nightly_id)*1000+999
 jid=int(tdd_j.strftime("%Y%m%d"))*10000000+int(nightly_id)*1000
-logging.info("ardoc_oracle_starter.py: MASTER jid candidate (base) '%s'", jid)
+print("ardoc_oracle_starter.py: MASTER jid candidate (base)", jid)
 ####
-# SEARCH FOR MAX JID, IF ANY
-####
+if role != 'master':
+    ts_j=ts
+#
 role_up=role.upper()
+relid_jj=""
 cmnd="""
 SELECT JID,RELID,tstamp FROM JOBS WHERE nid = :nightly_id and JID > :jid_base and JID <= :jid_max and tstamp is not null order by tstamp"""
 cursor.execute(cmnd,{'nightly_id' : nightly_id,'jid_base' : jid_base,'jid_max' : jid_max})
@@ -201,18 +249,19 @@ rowmax_max=jid
 lresult=len(result)
 if lresult > 0:
     for row in result:
-        logging.info("ardoc_oracle_starter.py: JID,RELID '%s' '%s'", row, jid)
+        print('ardoc_oracle_starter.py: JID,RELID', row, jid)
         if row[0] > rowmax_max:
           rowmax_max = row[0] 
 #    rowmax=result[-1]
     jid = rowmax_max
-    logging.info("ardoc_oracle_starter.py: MAX_JID '%s'",jid) 
-# INCREMENT JID FOR A NEW JOB
+    print('ardoc_oracle_starter.py: MAX_JID',jid) 
+#    relid_jj = rowmax[1]
 jid += 1
-logging.info("ardoc_oracle_starter.py: incremented max jid: '%s' for relid: '%s' current ts: '%s' ROLE: '%s'",jid,relid_j,ts_j,role_up)
+relid_jj=relid_j
+print("ardoc_oracle_starter.py: max jid:",jid," for relid:",relid_j,relid_jj," current ts:",ts_j," ROLE ",role_up)
 #
 cmnd="""
-insert into jobs (jid,nid,relid,arch,os,comp,opt,role,kitb,cvmfs,tstamp,webarea,webbuild,btool,bvers,buildarea,copyarea) values
+insert into jobs (jid,nid,relid,arch,os,comp,opt,role,kitb,cvmfs,tstamp,btool,bvers,buildarea,copyarea,gitbr,hid,fromscratch,githash) values
 ( :jid
 , :nightly_id
 , :relid_j
@@ -221,9 +270,9 @@ insert into jobs (jid,nid,relid,arch,os,comp,opt,role,kitb,cvmfs,tstamp,webarea,
 , :comp
 , :opt, :role_up
 , :z, :z
-, :t_val, :ardoc_webarea, :ardoc_http_build, :btool, :bvers, :buildarea, :copyarea)"""
-dict_p={'jid' : jid,'nightly_id' : nightly_id,'relid_j' : relid_j,'arch' : arch,'osys' : osys,'comp' : comp,'opt' : opt,'role_up' : role_up,'t_val' : ts_j, 'ardoc_webarea' : ardoc_webarea, 'ardoc_http_build' : ardoc_http_build, 'z' : 0, 'btool' : btool, 'bvers' : bvers, 'buildarea' : buildarea, 'copyarea' : copyarea}
-logging.info("CMNDJ '%s' dict '%s'",cmnd,dict_p)
+, :t_val, :btool, :bvers, :buildarea, :copyarea, :target_branch, :hid, :fromscratch, :gitmrhash)"""
+dict_p={'jid' : jid,'nightly_id' : nightly_id,'relid_j' : relid_j,'arch' : arch,'osys' : osys,'comp' : comp,'opt' : opt,'role_up' : role_up,'t_val' : ts_j,'z' : 0, 'btool' : btool, 'bvers' : bvers, 'buildarea' : buildarea, 'copyarea' : copyarea, 'target_branch' : target_branch, 'hid' : hostnam_nn, 'fromscratch' : scratch_indicator, 'gitmrhash' : gitmrhash}
+print("CMNDJ", cmnd,' dict ',dict_p)
 cursor.prepare(cmnd)
 cursor.setinputsizes(t_val=cx_Oracle.TIMESTAMP)
 cursor.execute(None, dict_p)
@@ -238,13 +287,13 @@ for row in result:
     lresult=len(result)
     if lresult > 0:
         jid = rowmax[0]
-        logging.info("ardoc_oracle_starter.py: job id for jobstat insertion identified: '%s'",jid)
+        print("ardoc_oracle_starter.py: job id for jobstat insertion identified:",jid)
     else:
-        logging.error("ardoc_oracle_starter.py: Error: absent job for relid: '%s'",relid_j)
+        print("ardoc_oracle_starter.py: Error: absent job for relid:",relid_j)
         sys.exit(1)
 
 if ardoc_gen_config_area == '':
-    logging.error("ardoc_oracle_starter.py: Error: absent ardoc_gen_config_area")
+    print("ardoc_oracle_starter.py: Error: absent ardoc_gen_config_area")
     sys.exit(1)
 fjid=ardoc_gen_config_area+os.sep+'jobid.txt'
 f=open(fjid, 'w')
@@ -254,10 +303,8 @@ fepoch=ardoc_gen_config_area+os.sep+'jobepoch.txt'
 f=open(fepoch, 'w')
 f.write(str(t_epoch))
 f.close()
-logging.info("ardoc_oracle_starter.py: wrote jobid to '%s'"+fjid)
-logging.info("ardoc_oracle_starter.py: wrote jobepoch to '%s'"+fepoch)
 
-logging.info("ardoc_oracle_starter.py: bindvars '%s'", cursor.bindvars)
+print('ardoc_oracle_starter.py: bindvars ', cursor.bindvars)
 cursor.close()
 connection.commit()
 connection.close()

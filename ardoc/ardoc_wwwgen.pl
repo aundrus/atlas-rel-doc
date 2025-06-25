@@ -134,6 +134,9 @@ else{
     print "Location: ${rel_loc} <br>\n";
 }
 
+if ( $ARDOC_COPY_HOME ne "" && $ARDOC_COPY_HOME ne $ARDOC_PROJECT_HOME && $ARDOC_COPY_BUILD_TYPE ne "void" ){
+    print "Releases are copied to: ${ARDOC_COPY_HOME} <br>\n";
+}
 $m_image="";
 $tm_image="";
 $filem="${ARDOC_WEBDIR}/status_email${relnum_suffix}";
@@ -182,7 +185,7 @@ if (${cont_word} ne "test"){
 print "
 <tr bgcolor=\"99CCCC\"><TH colspan=8 align=center >
 ATN Integration+Unit tests results
-(click for <a href=\"ardoc_testsummary${relnum_suffix}.html\">details</a> or <a href=\"${ARDOC_COMMON_WEBPAGE}/ATNSummary.html\" target=\"cumulative test list\">cumulative results</a>)
+(click for <a href=\"ardoc_testsummary${relnum_suffix}.html\">details</a> or <a href=\"${ARDOC_COMMON_WEBPAGE}/ATNSummary_${ARDOC_PROJECT_RELNUMB_COPY}.html\" target=\"cumulative test list\">cumulative results</a>)
 </th>
 </tr>";
 ##<form>
@@ -383,8 +386,10 @@ my $ARDOC_TITLE_COMMENT="$ARDOC_TITLE_COMMENT";
 my $ARDOC_TITLE_TESTS="$ARDOC_TITLE_TESTS";
 my $ARDOC_TITLE_QA="$ARDOC_TITLE_QA";
 my $ARDOC_HOSTNAME="$ARDOC_HOSTNAME";
+my $ARDOC_COPY_HOME="$ARDOC_COPY_HOME";
 my $ARDOC_WEB_HOME="$ARDOC_WEB_HOME";
-my $ARDOC_PROJECT_RELNAME="$ARDOC_PROJECT_RELNAME";
+my $ARDOC_PROJECT_RELNAME_COPY="$ARDOC_PROJECT_RELNAME_COPY";
+my $ARDOC_COPY_BUILD_TYPE="$ARDOC_COPY_BUILD_TYPE";
 my $ARDOC_INC_BUILD="$ARDOC_INC_BUILD";
 my $ARDOC_PROJECT_NAME="$ARDOC_PROJECT_NAME";
 my $ARDOC_INTTESTS_DIR="$ARDOC_INTTESTS_DIR";
@@ -648,7 +653,7 @@ if ( $ATN_WORKDIR eq "new" ){
 }
 
 if ( $ARDOC_WEB_HOME ne "" ){
-push(@output,"<td><a href=\"$ARDOC_WEB_HOME/$ARDOC_PROJECT_RELNAME/$ARDOC_INTTESTS_DIR/$work_dir\">link</a></td>\n");
+push(@output,"<td><a href=\"$ARDOC_WEB_HOME/$ARDOC_PROJECT_RELNAME_COPY/$ARDOC_INTTESTS_DIR/$work_dir\">link</a></td>\n");
 }
 if ( $a_names eq "" )
 {push(@output,"<td>N/A</td>\n");}

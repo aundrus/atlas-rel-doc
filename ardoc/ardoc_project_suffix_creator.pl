@@ -7,12 +7,14 @@ my $ARDOC_PROJECT_NAME="$ARDOC_PROJECT_NAME";
 my $ARDOC_HOME="$ARDOC_HOME";
 
 $full_name="$ARDOC_PROJECT_NAME";
+$short_name=`python $ARDOC_HOME/ardoc_project_translator.py $ARDOC_PROJECT_NAME`;
+chomp($short_name);
+
 @fields = split("-", $ARDOC_ARCH);
 $machine="";
 for ($m=0; $m <= $#fields; $m++){
  if ( $fields[$m] =~ i686 || $fields[$m] =~ ia32 ) { $machine="32B"; last;}
  if ( $fields[$m] =~ x86_64 || $fields[$m] =~ amd64 ) { $machine="64B"; last;} 
- if ( $fields[$m] =~ aarch64 ) { $machine="ARM64B"; last;}
 }
 
 $opsyst="";
@@ -22,9 +24,9 @@ for ($m=0; $m <= $#fields; $m++){
  if ( $fields[$m] =~ slc5 ) { $opsyst="S5"; last;}
  if ( $fields[$m] =~ slc6 ) { $opsyst="S6"; last;}
  if ( $fields[$m] =~ cc7 ) { $opsyst="C7"; last;}
+ if ( $fields[$m] =~ el9 ) { $opsyst="E9"; last;}
  if ( $fields[$m] =~ centos7 ) { $opsyst="C7"; last;}
  if ( $fields[$m] =~ centos9 ) { $opsyst="C9"; last;}
- if ( $fields[$m] =~ el9 ) { $opsyst="E9"; last;}
  if ( $fields[$m] =~ mac104 ) { $opsyst="M104"; last;}
  if ( $fields[$m] =~ mac105 ) { $opsyst="M105"; last;}
  if ( $fields[$m] =~ mac106 ) { $opsyst="M106"; last;}
@@ -50,8 +52,6 @@ for ($m=0; $m <= $#fields; $m++){
     elsif ( $fields[$m] =~ gcc11 ) { $opsyst="${opsyst}G11"; last;}
     elsif ( $fields[$m] =~ gcc12 ) { $opsyst="${opsyst}G12"; last;}
     elsif ( $fields[$m] =~ gcc13 ) { $opsyst="${opsyst}G13"; last;}
-    elsif ( $fields[$m] =~ gcc14 ) { $opsyst="${opsyst}G14"; last;}
-    elsif ( $fields[$m] =~ gcc15 ) { $opsyst="${opsyst}G15"; last;}
 }
 
 for ($m=0; $m <= $#fields; $m++){
@@ -96,30 +96,6 @@ for ($m=0; $m <= $#fields; $m++){
 }
 
 for ($m=0; $m <= $#fields; $m++){
-    if ( $fields[$m] =~ /^.*clang15.*$/ ) { $opsyst="${opsyst}C15"; last;}
-}
-
-for ($m=0; $m <= $#fields; $m++){
-    if ( $fields[$m] =~ /^.*clang16.*$/ ) { $opsyst="${opsyst}C16"; last;}
-}
-
-for ($m=0; $m <= $#fields; $m++){
-    if ( $fields[$m] =~ /^.*clang17.*$/ ) { $opsyst="${opsyst}C17"; last;}
-}
-
-for ($m=0; $m <= $#fields; $m++){
-    if ( $fields[$m] =~ /^.*clang18.*$/ ) { $opsyst="${opsyst}C18"; last;}
-}
-
-for ($m=0; $m <= $#fields; $m++){
-    if ( $fields[$m] =~ /^.*clang19.*$/ ) { $opsyst="${opsyst}C19"; last;}
-}
-
-for ($m=0; $m <= $#fields; $m++){
-    if ( $fields[$m] =~ /^.*clang20.*$/ ) { $opsyst="${opsyst}C20"; last;}
-}
-
-for ($m=0; $m <= $#fields; $m++){
     if ( $fields[$m] =~ llvm ) { $opsyst="${opsyst}VM"; last;}
 }
 
@@ -129,5 +105,5 @@ for ($m=0; $m <= $#fields; $m++){
     if ( $fields[$m] =~ dbg ) { $opt="Dbg"; last;}
 }
 
-print "${ARDOC_SUFFIX_PREPEND}${machine}${opsyst}${full_name}${opt}";
+print "${ARDOC_SUFFIX_PREPEND}${machine}${opsyst}${short_name}${opt}";
 exit;

@@ -1,0 +1,84 @@
+#!/bin/sh
+#
+# ARDOC - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+#
+# ----------------------------------------------------------
+# build_project_release : name says it all
+# ----------------------------------------------------------
+#
+function show_help() {
+    echo "Usage: build_doc \\"
+    echo "-n <nightly branch name> [other options]"
+}
+ 
+export ARDOC_HOME="/afs/cern.ch/atlas/software/dist/ci/ardoc_doc_builder"
+export ARDOC_EPOCH=`date +%s.%N`
+export ARDOC_MASTER_EPOCH=$ARDOC_EPOCH
+dateString=`date +%Y-%m-%d-%H-%M -d@${ARDOC_EPOCH}`
+nightlyName="21.0.X-CI"
+release="MR-${dateString}"
+arch="x86_64-slc6-gcc49-opt"
+pathToSource=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_ardoc_test/source
+pathToBuild=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_ardoc_test/build
+startTime=$ARDOC_EPOCH
+endTime=$ARDOC_EPOCH
+comname=`basename $0`
+if [ "$comname" = "build_doc" ]; then
+exitcomtool="exit"
+else
+exitcomtool="return"
+fi
+
+#while [ $# -ne 0 ]; do
+#    case $1 in
+#         -r | --relnum)    release=$2; shift;;
+#         -p | --project)   project_req=$2; shift;;
+#              --local)     LOCAL_AREA=$2; shift;;
+#         -* | --*)         show_help; eval ${exitcomtool} 1;;
+#    esac
+#    shift
+#done
+
+export ARDOC_NIGHTLY_NAME=$nightlyName
+export ARDOC_NIGHTLY_GROUP="CI"
+export ARDOC_ARCH=$arch
+export ARDOC_RELHOME=$pathToBuild
+## just in case: ARDOC_PROJECT_HOME should not be used anymore...
+export ARDOC_PROJECT_HOME=$ARDOC_RELHOME
+export ARDOC_SOURCEHOME=$pathToSource
+export ARDOC_STARTTIME=$startTime
+export ARDOC_ENDTIME=$endTime
+export ARDOC_COMMON_CONFIG_AREA="/afs/cern.ch/atlas/software/dist/ci/ardoc_config_area_doc"
+export ARDOC_CONFIG_AREA=""
+export ARDOC_PROJECT_NAME="Athena"
+export ARDOC_PROJECT_RELNAME=$release
+export ARDOC_BUILD_FROM_SCRATCH="yes"
+export ARDOC_LOG_SCRATCH="yes"
+export ARDOC_HTTP=http://cern.ch/atlas-computing/links/distDirectory/ci
+export ARDOC_HTTP_BUILD=$ARDOC_HTTP
+#FOR ORACLE SCRIPTS COMPATIBILITY
+export ARDOC_GEN_CONFIG_AREA=$ARDOC_COMMON_CONFIG_AREA
+export ARDOC_ATLAS_RELEASE='21.0.0'
+export ARDOC_ATLAS_ALT_RELEASE='21.0.0'
+export ARDOC_ORACLE_SCHEMA="ATLAS_ARDOC"
+export ARDOC_NIGHTLY_ROLE='master'
+# END FOR ORACLE SCRIPTS COMPATIBILITY
+
+export ARDOC_SUFFIX_PREPEND=` echo ${ARDOC_NIGHTLY_NAME} | sed 's/[^a-zA-Z0-9_]//g'`
+suff1=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="PRJ"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
+suff2=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="$proj"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
+suff=`echo $suff1 | sed 's/PRJ//'`
+
+echo "ardoc_job_doc: INFO: ARDOC preliminary env:"
+env | grep ARDOC
+echo "=============== end ARDOC preliminary env"
+
+if [ "$exitcomtool" = "exit" ]; then
+${ARDOC_HOME}/ardoc_job_doc
+else
+export ARDOC_BUILD_FROM_SCRATCH="no"
+export ARDOC_LOG_SCRATCH="no"
+fi
+
+${exitcomtool} 0

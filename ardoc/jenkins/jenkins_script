@@ -1,0 +1,47 @@
+#!/bin/sh  
+function show_Help() {
+    echo "Usage: jenkins_script \\"
+    echo "-w <work area (mandatory)"
+    echo "--checkout_from_scratch checkout from scratch rather than git pull"
+}
+LOCAL_AREA=""
+checkout_from_scratch=0
+while [ $# -ne 0 ]; do
+    case $1 in 
+         -w | --workarea) LOCAL_AREA=$2; shift;;
+         --checkout_from_scratch) checkout_from_scratch=1;; 
+         -* | --*)         show_help; exit 1;;
+    esac
+    shift
+done
+if [ "$LOCAL_AREA" = "" ]; then
+  echo "jenkins_script_for_doc_build: Error: local work area is not specified"  
+  exit 1 
+fi
+if [ ! -d $LOCAL_AREA ]; then
+  mkdir -p $LOCAL_AREA; stat=$?
+  if [ "$stat" -ne 0 ]; then 
+    echo "jenkins_script_for_doc_build: Error: local work area $LOCAL_AREA can not be created"
+    exit 1
+  fi 
+fi
+cd $LOCAL_AREA
+if [ "$checkout_from_scratch" -eq 1 ]; then
+  [[ -d ardoc_doc_builder ]] && rm -rf ardoc_doc_builder
+fi
+[[ ! -d ardoc_doc_builder ]] && git clone https://:@gitlab.cern.ch:8443/aundrus/ardoc_doc_builder.git; stat1=$?
+cd ardoc_doc_builder
+git pull origin CI01; stat2=$?
+if [ "$stat1" -ne 0 -o "$stat2" -ne 0 ]; then
+  echo "jenkins_script_for_doc_build: Error: git clone, pull returned $stat1 $stat2"
+  exit 1
+fi
+
+[[ -f ../gitInfo ]] && rm ../gitInfo
+git branch > ../gitInfo 2>&1 
+git describe --always >> ../gitInfo 2>&1
+git log --pretty=format:"%h - %an, %cd %s" -5 >> ../gitInfo  2>&1
+#
+cd $LOCAL_AREA
+export ARDOC_HOME=$LOCAL_AREA/ardoc_doc_builder
+$ARDOC_HOME/jobs/mr_doc_build

@@ -1,0 +1,60 @@
+#!/bin/sh
+#echo "ardoc_db_access"
+option=""
+step=""
+param=""
+code=0
+nochange=""
+while [ $# -ne 0 ]; do
+        case $1 in
+            -b) option="begin";;
+            -e) option="end";;
+            -s) step=$2; shift;;
+            -p) param=$2; shift;;
+            -c) code=$2; shift;;
+            --nochange) nochange=" --nochange";;
+        esac
+        shift
+    done
+
+if [ "$step" = "" ]; then
+echo "ardoc_db_access: Warning: no step specified"
+exit 0 
+fi
+#if [ "$step" = "COPYT" -o "$step" = "copyt" ]; then
+#echo "ardoc_db_access: Warning: skip step $step"
+#exit 0
+#fi
+if [ "$option" = "" ]; then
+echo "ardoc_db_access: Warning: no option specified"
+exit 0
+fi
+
+step_lower=`echo $step | tr [:upper:] [:lower:]` 
+
+if [ "$step" = "CONFIG" ]; then
+
+   if [ "$option" = "begin" ]; then $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_jobstat.py -o 'config' -p \"$param\";fi
+   if [ "$option" = "end" ]; then $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_jobstat.py -o 'config' -s ${code}; fi
+
+else
+
+if [ "$option" = "begin" ]; then 
+#   if [ "$gitlabMergeRequestIid" = "16037" ]; then
+      $ARDOC_HOME/ardoc_oracle_wrapper_test.sh 3 python $ARDOC_HOME/ardoc_oracle_jobstat_test_01.py -o $step_lower
+#   else
+#      $ARDOC_HOME/ardoc_oracle_wrapper_test.sh 3 python $ARDOC_HOME/ardoc_oracle_jobstat_test.py -o $step_lower
+#   fi
+   if [ "$step" = "KIT" ]; then 
+      $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_jobstat.py -o "KITINST"
+   fi
+fi
+if [ "$option" = "end" ]; then 
+#   if [ "$gitlabMergeRequestIid" = "16037" ]; then
+      $ARDOC_HOME/ardoc_oracle_wrapper_test.sh 3 python $ARDOC_HOME/ardoc_oracle_jobstat_test_01.py -o $step_lower -s ${code} ${nochange}
+#   else
+#      $ARDOC_HOME/ardoc_oracle_wrapper_test.sh 3 python $ARDOC_HOME/ardoc_oracle_jobstat_test.py -o $step_lower -s ${code} ${nochange}
+#   fi
+fi
+
+fi # if [ "$option" = "CONFIG" ]; then

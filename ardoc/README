@@ -1,2 +1,6 @@
+<<<<<<< HEAD
 Package ARDOC
 Main functionality: build release documentation
+=======
+Package ardoc_doc_builder
+>>>>>>> nicos_variant

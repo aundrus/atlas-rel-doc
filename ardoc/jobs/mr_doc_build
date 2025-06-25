@@ -1,0 +1,270 @@
+#!/bin/sh
+#
+# ARDOC - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+#
+# ----------------------------------------------------------
+# build_project_release : name says it all
+# ----------------------------------------------------------
+#
+function show_help() {
+    echo "Usage: build_doc \\"
+    echo "-n <nightly branch name> [other options]"
+}
+comname=`basename $0`
+if [ "$comname" = "mr_doc_build" ]; then
+exitcomtool="exit"
+else
+exitcomtool="return"
+fi
+ 
+#export ARDOC_HOME="/afs/cern.ch/atlas/software/dist/ci/ardoc_doc_builder"
+[[ "$ARDOC_HOME" = "" ]] && echo "mr_doc_build: Error: ARDOC_HOME is not set" && ${exitcomtool} 1
+[[ ! -d  $ARDOC_HOME  ]] && echo "mr_doc_build: Error: ARDOC_HOME $ARDOC_HOME does not exist" && ${exitcomtool} 1
+[[ "$ARDOC_ARCH" = "" ]] && echo "mr_doc_build: Error: ARDOC_ARCH is not set" && ${exitcomtool} 1
+[[ "$ARDOC_WEB_ACCESS_DIR" = "" ]] && echo "mr_doc_build: Error: ARDOC_WEB_ACCESS_DIR is not set" && ${exitcomtool} 1
+[[ "$ARDOC_HTTP" = "" ]] && echo "mr_doc_build: Error: ARDOC_HTTP is not set" && ${exitcomtool} 1
+[[ "$MR_PATH_TO_SOURCE" = "" ]] && echo "mr_doc_build: Error: MR_PATH_TO_SOURCE is not set" && ${exitcomtool} 1
+[[ ! -d  $MR_PATH_TO_SOURCE  ]] && echo "mr_doc_build: Error: MR_PATH_TO_SOURCE $MR_PATH_TO_SOURCE does not exist" && ${exitcomtool} 1
+[[ "$BUILD_DIR" = "" ]] && echo "mr_doc_build: Error: BUILD_DIR is not set" && ${exitcomtool} 1
+[[ ! -d  $BUILD_DIR  ]] && echo "mr_doc_build: Error: BUILD_DIR $BUILD_DIR does not exist" && ${exitcomtool} 1
+#
+[[ "$MR_RELPATH_TO_CONFBUILDLOG" = "" ]] &&  export MR_RELPATH_TO_CONFBUILDLOG=cmake_config.log
+[[ "$MR_PATH_TO_CHECKOUTLOG" = "" ]] && export MR_PATH_TO_CHECKOUTLOG=/afs/cern.ch/atlas/software/dist/ci/testfiles/test_checkout.log
+[[ "$MR_PATH_TO_EXTBUILDLOG" = "" ]] && export MR_PATH_TO_EXTBUILDLOG=/afs/cern.ch/atlas/software/dist/ci/testfiles/test_extbuild.log
+[[ "$MR_PATH_TO_CONFTESTLOG" = "" ]] && export MR_PATH_TO_CONFTESTLOG=/afs/cern.ch/atlas/software/dist/ci/testfiles/test_config.log
+#
+export ARDOC_EPOCH=`date +%s.%N`
+export ARDOC_MASTER_EPOCH=$ARDOC_EPOCH
+dateString=`date +%Y-%m-%d-%H-%M -d@${ARDOC_EPOCH}`
+release="MR-0001-${dateString}"
+if [[ "$ARDOC_PROJECT_RELNAME" = "" ]]; then
+   echo "mr_doc_build: Warning: ARDOC_PROJECT_RELNAME (release name) is not set" 
+   echo "mr_doc_build: Warning: setting ARDOC_PROJECT_RELNAME to $release"
+   export ARDOC_PROJECT_RELNAME=${release} 
+fi
+[[ "$MR_GITLAB_LINK" = "" ]] && echo "mr_doc_build: Warning MR_GITLAB_LINK (link to GitLab merge request) is not set"
+nightlyName="MR-CI-builds"
+[[ "$PARENT_JOB_NAME" =~ ^.*TRAINING.*$ ]] && nightlyName="MR-training"
+startTime=$ARDOC_EPOCH
+endTime=$ARDOC_EPOCH
+dirNicosHome=`dirname $ARDOC_HOME`
+
+#while [ $# -ne 0 ]; do
+#    case $1 in
+#         -r | --relnum)    release=$2; shift;;
+#         -p | --project)   project_req=$2; shift;;
+#              --local)     LOCAL_AREA=$2; shift;;
+#         -* | --*)         show_help; eval ${exitcomtool} 1;;
+#    esac
+#    shift
+#done
+
+export ARDOC_NIGHTLY_NAME=$nightlyName
+export ARDOC_NIGHTLY_GROUP="CI"
+## just in case: ARDOC_PROJECT_HOME should not be used anymore...
+export ARDOC_PROJECT_HOME=$ARDOC_RELHOME
+export ARDOC_SOURCEHOME="$MR_PATH_TO_SOURCE"
+export ARDOC_STARTTIME=$startTime
+export ARDOC_ENDTIME=$endTime
+export ARDOC_COMMON_CONFIG_AREA="/afs/cern.ch/atlas/software/dist/ci/ardoc_config_area_doc"
+export ARDOC_CONFIG_AREA=""
+export ARDOC_BUILD_FROM_SCRATCH="yes"
+export ARDOC_LOG_SCRATCH="yes"
+export ARDOC_HTTP_BUILD=$ARDOC_HTTP
+#FOR ORACLE SCRIPTS COMPATIBILITY
+###export ARDOC_GEN_CONFIG_AREA=$ARDOC_COMMON_CONFIG_AREA
+export ARDOC_GEN_CONFIG_AREA=$dirNicosHome/ardoc_local_gen_config_area
+[[ ! -d  $dirNicosHome/ardoc_local_gen_config_area ]] && mkdir $dirNicosHome/ardoc_local_gen_config_area
+export ARDOC_ATLAS_RELEASE='N/A'
+export ARDOC_ATLAS_ALT_RELEASE='N/A'
+export ARDOC_ORACLE_SCHEMA="ATLAS_ARDOC"
+export ARDOC_NIGHTLY_ROLE='master'
+# END FOR ORACLE SCRIPTS COMPATIBILITY
+[[ "$ARDOC_PROJECT_NAME" = "" ]] && export ARDOC_PROJECT_NAME="Athena"
+[[ "${ARDOC_PROJECT_ARRAY}" = "" ]] && export ARDOC_PROJECT_ARRAY="${ARDOC_PROJECT_NAME}"
+parray=(${ARDOC_PROJECT_ARRAY})
+parray_max=(${ARDOC_PROJECT_ARRAY_MAX})
+el_parray=${#parray[@]}
+el_parray_max=${#parray_max[@]}
+export LEN_ARDOC_PROJECT_ARRAY="${el_parray}"
+export LEN_ARDOC_PROJECT_ARRAY_MAX="${el_parray_max}"
+echo "mr_doc_build: INFO: LEN_ARDOC_PROJECT_ARRAY and LEN_ARDOC_PROJECT_ARRAY_MAX ${LEN_ARDOC_PROJECT_ARRAY} and ${LEN_ARDOC_PROJECT_ARRAY_MAX}"
+# ARDOC_SCRATCH_INDICATOR: 0 - no scratch, 1 - from scratch, 
+# 2 - incomplete scratch, 3 - from scratch due to full-build label,
+# 4 - incomplete scratch due to full-build label, 9 - unknown 
+export ARDOC_SCRATCH_INDICATOR=9
+if [ "${gitlabMergeRequestId}" != "" ]; then
+  FILE_SCRATCH_INDICATOR=${BUILD_DIR}/scratch${gitlabMergeRequestId}
+  if [ -f ${FILE_SCRATCH_INDICATOR} ]; then
+    scratch_indicator=`cat ${FILE_SCRATCH_INDICATOR} | head -1`
+    [[ "${scratch_indicator}" -eq 0 || "${scratch_indicator}" -eq 1 || "${scratch_indicator}" -eq 2 || "${scratch_indicator}" -eq 3 || "${scratch_indicator}" -eq 4 ]] && ARDOC_SCRATCH_INDICATOR=${scratch_indicator}
+  fi
+fi
+echo "mr_doc_build: INFO: ARDOC_SCRATCH_INDICATOR is set ${ARDOC_SCRATCH_INDICATOR}"
+export ARDOC_FULLBUILD_LABEL='False'
+export ARDOC_FULLUNIT_LABEL='False'
+export ARDOC_FULLINTEGR_LABEL='False'
+export ARDOC_LONGTESTS_LABEL='False'
+if [ "$CI_LABELS_LIST" != "" ]; then
+  if [ -f ${CI_LABELS_LIST} ]; then
+    cat ${CI_LABELS_LIST} | sed 's/ *$//g' | sed 's/^ *//g' | grep "full-build" >/dev/null; stat_fb=$?
+    cat ${CI_LABELS_LIST} | sed 's/ *$//g' | sed 's/^ *//g' | grep "full-unit-tests" >/dev/null; stat_fu=$?
+    cat ${CI_LABELS_LIST} | sed 's/ *$//g' | sed 's/^ *//g' | grep "full-integration-tests" >/dev/null; stat_fi=$?
+    cat ${CI_LABELS_LIST} | sed 's/ *$//g' | sed 's/^ *//g' | grep "LongTests" >/dev/null; stat_lt=$?
+    [[ "${stat_fb}" -eq 0 ]] && ARDOC_FULLBUILD_LABEL='True' 
+    [[ "${stat_fu}" -eq 0 ]] && ARDOC_FULLUNIT_LABEL='True'
+    [[ "${stat_fi}" -eq 0 ]] && ARDOC_FULLINTEGR_LABEL='True'
+    [[ "${stat_lt}" -eq 0 ]] && ARDOC_LONGTESTS_LABEL='True'
+  fi
+fi
+echo "mr_doc_build: INFO: specialty labels ${ARDOC_FULLBUILD_LABEL} ${ARDOC_FULLUNIT_LABEL} ${ARDOC_FULLINTEGR_LABEL} ${ARDOC_LONGTESTS_LABEL}"
+dir_dict=""
+if [ "$CI_RESULTS_DICT" != "" ]; then
+  if [ -f $CI_RESULTS_DICT ]; then
+    dir_dict=`dirname $CI_RESULTS_DICT`
+  fi 
+fi
+echo "mr_doc_build: INFO: directory with CI test results dictionaries: ${dir_dict}"
+
+MR_PATH_TO_CHECKOUTLOG=${BUILD_DIR}/git_checkout.log
+[[ "${CI_MERGE_REQUEST_ID}" != "" ]] && MR_PATH_TO_CHECKOUTLOG=${BUILD_DIR}/git_checkout_${CI_MERGE_REQUEST_ID}.log 
+[[ -f ${MR_PATH_TO_CHECKOUTLOG} ]] && rm -f ${MR_PATH_TO_CHECKOUTLOG}
+touch ${MR_PATH_TO_CHECKOUTLOG}
+if [ "${CI_MERGE_REQUEST_ID}" != "" -a "${SOURCE_DIR}" != "" ]; then
+  sd_d=`dirname ${SOURCE_DIR}`
+  job_name=`basename ${sd_d}`
+  job_log_url="https://atlas-sit-ci.cern.ch/job/${job_name}/${CI_MERGE_REQUEST_ID}/consoleText"
+  temp_log=${MR_PATH_TO_CHECKOUTLOG}_temp
+  [[ -f $temp_log} ]] && rm -f ${temp_log} 
+  echo "mr_doc_build: INFO: extracting checkout log from ${job_log_url} to ${temp_log}"
+#  curl -o ${temp_log} ${job_log_url} --user ${USER}:`cat ~/private/tok_JCI_Jan27`; stat_crl=$?
+  curl -o ${temp_log} ${job_log_url} --user aundrus:`cat ~/private/tok_au_JCI_May27`; stat_crl=$?
+  if [ "${stat_crl}" -eq 0 ]; then
+    cat ${temp_log} | sed -n '/^Building\s*remotely.*$/,$p' | sed  '/^Starting\s*build\s*job.*$/Q' > ${MR_PATH_TO_CHECKOUTLOG}  
+  else
+    echo "mr_doc_build: WARNING: checkout log was not extracted, code $stat_crl"
+  fi  
+fi
+
+############START OF PROJECTS LOOP#############
+inum=0
+for PROJECT in ${ARDOC_PROJECT_ARRAY} 
+do
+((inum++))
+export ARDOC_PROJECT_NAME=${PROJECT}
+export ARDOC_PROJECT_NUMBER=${inum}
+export ARDOC_JOB_LOG=$dirNicosHome/job_logs/log_${ARDOC_PROJECT_RELNAME}_${ARDOC_PROJECT_NAME}
+[[ ! -d  $dirNicosHome/job_logs ]] && mkdir $dirNicosHome/job_logs
+project_string=""
+[[ ${ARDOC_PROJECT_NAME} != "" ]] && project_string=", PROJECT ${ARDOC_PROJECT_NAME}"
+[[ ${ARDOC_PROJECT_NUMBER} != "" ]] && project_string="${project_string}, SEQ. NUMBER ${ARDOC_PROJECT_NUMBER}"
+export ARDOC_TARGET_BRANCH=${MR_TARGET_BRANCH}
+[[ ${ARDOC_TARGET_BRANCH} = "" ]] && ARDOC_TARGET_BRANCH="UNKNOWN"
+echo "mr_doc_build: INFO: starting building docs for ${ARDOC_PROJECT_RELNAME}${project_string} (git branch $ARDOC_TARGET_BRANCH) at $dateString, log log_${ARDOC_PROJECT_RELNAME}_${ARDOC_PROJECT_NAME}"
+echo "mr_doc_build: INFO: starting building docs for ${ARDOC_PROJECT_RELNAME}${project_string} (git branch $ARDOC_TARGET_BRANCH) at $dateString" > $ARDOC_JOB_LOG
+export ARDOC_CTEST_TAILOR_LIST=""
+if [ "${dir_dict}" != "" -a ${gitlabMergeRequestId} != "" ]; then
+  nctl="${dir_dict}/ctestlist${PROJECT}_${gitlabMergeRequestId}.pkl"
+  [[ -f ${nctl} ]] && ARDOC_CTEST_TAILOR_LIST=${dir_dict}/ctestlist${PROJECT}_${gitlabMergeRequestId}.pkl     
+fi
+echo "mr_doc_build: INFO: ARDOC_CTEST_TAILOR_LIST: ${ARDOC_CTEST_TAILOR_LIST} (components ${dir_dict},${PROJECT}_${gitlabMergeRequestId})"
+echo "mr_doc_build: INFO: ARDOC_CTEST_TAILOR_LIST: ${ARDOC_CTEST_TAILOR_LIST} (components ${dir_dict},${PROJECT}_${gitlabMergeRequestId})" >> $ARDOC_JOB_LOG
+# SET paths to release build area
+#export MR_PATH_TO_BUILD=${BUILD_DIR}/${PROJECT}/build/${PROJECT}
+export ARDOC_RELHOME="${BUILD_DIR}/${PROJECT}/build/${PROJECT}"
+# SET path to cmake configuration output
+export MR_PATH_TO_CONFBUILDLOG=${ARDOC_RELHOME}/${MR_RELPATH_TO_CONFBUILDLOG}
+
+export MR_PATH_TO_EXTBUILD=${BUILD_DIR}/${PROJECT}/build/${PROJECT}Externals
+export MR_PATH_TO_EXTBUILDLOG=${BUILD_DIR}/${PROJECT}/build/${PROJECT}/external_build_combined.log
+[[ -f ${MR_PATH_TO_EXTBUILDLOG} ]] && rm -f ${MR_PATH_TO_EXTBUILDLOG}
+touch ${MR_PATH_TO_EXTBUILDLOG}
+if [ -d ${MR_PATH_TO_EXTBUILD} ]; then
+if [ -f ${MR_PATH_TO_EXTBUILD}/cmake_config.log ]; then
+  echo "=================================================" >> ${MR_PATH_TO_EXTBUILDLOG}
+  echo "==========EXTERNALS CMAKE CONFIG LOGFILE=========" >> ${MR_PATH_TO_EXTBUILDLOG}
+  echo "=================================================" >> ${MR_PATH_TO_EXTBUILDLOG}
+  cat ${MR_PATH_TO_EXTBUILD}/cmake_config.log >> ${MR_PATH_TO_EXTBUILDLOG}
+fi
+if [ -f ${MR_PATH_TO_EXTBUILD}/cmake_build.log ]; then
+  echo "=================================================" >> ${MR_PATH_TO_EXTBUILDLOG}
+  echo "==========EXTERNALS BUILD LOGFILE=========" >> ${MR_PATH_TO_EXTBUILDLOG}
+  echo "=================================================" >> ${MR_PATH_TO_EXTBUILDLOG}
+  cat ${MR_PATH_TO_EXTBUILD}/cmake_build.log >> ${MR_PATH_TO_EXTBUILDLOG}
+fi
+if [ -f ${MR_PATH_TO_EXTBUILD}/cmake_install.log ]; then
+  echo "=================================================" >> ${MR_PATH_TO_EXTBUILDLOG}
+  echo "==========EXTERNALS CMAKE INSTALL LOGFILE=========" >> ${MR_PATH_TO_EXTBUILDLOG}
+  echo "=================================================" >> ${MR_PATH_TO_EXTBUILDLOG}
+  cat ${MR_PATH_TO_EXTBUILD}/cmake_install.log >> ${MR_PATH_TO_EXTBUILDLOG}
+fi
+fi
+if [ ! -f ${MR_PATH_TO_EXTBUILD}/cmake_build.log ]; then
+  if [ "${ARDOC_PROJECT_NAME}" = "AthDataQuality" -o "${ARDOC_PROJECT_NAME}" = "DetCommon" ]; then
+    echo "========================================================================================" >> ${MR_PATH_TO_EXTBUILDLOG}
+    echo "==========EXTERNALS WERE NOT BUILT FOR ${ARDOC_PROJECT_NAME} PROJECT (expected)=========" >> ${MR_PATH_TO_EXTBUILDLOG} 
+    echo "========================================================================================" >> ${MR_PATH_TO_EXTBUILDLOG} 
+  fi
+fi
+
+export ARDOC_SUFFIX_PREPEND=` echo ${ARDOC_NIGHTLY_NAME} | sed 's/[^a-zA-Z0-9_]//g'`
+suff1=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="PRJ"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
+suff2=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="$proj"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
+suff=`echo $suff1 | sed 's/PRJ//'`
+
+echo "ardoc_job_doc: INFO: ARDOC preliminary env:" >> $ARDOC_JOB_LOG
+env | grep ARDOC >> $ARDOC_JOB_LOG
+echo "=============== end ARDOC preliminary env" >> $ARDOC_JOB_LOG
+
+if [ "$exitcomtool" = "exit" ]; then
+if [[ "${PARENT_JOB_NAME}" =~ ^.*TRAINING.*$ ]]; then
+    if [ -f ${SOURCE_DIR}/git_current_branch ]; then
+        curbr=`cat ${SOURCE_DIR}/git_current_branch | head -1`
+        if [ "${curbr}" != "" ]; then
+            echo "mr_doc_build: INFO: filling MR_CURRENT_GIT_BRANCH with ${curbr}"
+            export MR_CURRENT_GIT_BRANCH="${curbr}"
+        else
+            echo "mr_doc_build: Warning: MR_CURRENT_GIT_BRANCH is not filled as ${SOURCE_DIR}/git_current_branch is empty"
+        fi
+    else
+        echo "mr_doc_build: MR_CURRENT_GIT_BRANCH is not filled as ${SOURCE_DIR}/git_current_branch does not exist"
+    fi
+fi
+###
+${ARDOC_HOME}/ardoc_job_doc  >> $ARDOC_JOB_LOG 2>&1
+###
+if [[ "${PARENT_JOB_NAME}" =~ ^.*TRAINING.*$ ]]; then
+    echo "mr_doc_build: INFO: begin domain analysis " >> $ARDOC_JOB_LOG 
+    if [ "${MR_TRAINING_DOMAIN}" = "" ]; then 
+        echo "mr_doc_build: Warning: MR_TRAINING_DOMAIN is not defined, skip domain analysis"
+    elif [[ "${MR_TRAINING_DOMAIN}" =~ ^.*AAAA.*$ ]]; then
+        echo "mr_doc_build: Warning: MR_TRAINING_DOMAIN name is false - ${MR_TRAINING_DOMAIN}, skip domain analysis"
+    else  
+        echo "mr_doc_build: INFO: MR_TRAINING_DOMAIN ${MR_TRAINING_DOMAIN}"
+        ${ARDOC_HOME}/ardoc_oracle_domains_wrapper.sh >> $ARDOC_JOB_LOG 2>&1
+    fi
+else # "${PARENT_JOB_NAME}" =~ ^.*TRAINING.*$
+    bypass_domain_updater="False"
+    [[ "${ARDOC_TARGET_BRANCH}" != "main" && "${ARDOC_TARGET_BRANCH}" != "23.0" ]] && bypass_domain_updater="True"
+    [[ "${PROJECT}" != "Athena" && "${PROJECT}" != "AthSimulation" ]] && bypass_domain_updater="True"
+    if [ "${bypass_domain_updater}" = "True" ]; then
+        echo "mr_doc_build: INFO: bypassing domain data update: branch ${ARDOC_TARGET_BRANCH}, project ${PROJECT}"
+    else
+        echo "mr_doc_build: INFO: begin domain data update (based on the job's ci test results) " >> $ARDOC_JOB_LOG
+        echo "mr_doc_build: INFO: perform domain data update (based on the job's ci test results), details in $ARDOC_JOB_LOG"
+        ${ARDOC_HOME}/ardoc_oracle_domains_updater_wrapper.sh >> $ARDOC_JOB_LOG 2>&1
+    fi
+    :;
+fi
+
+fi
+done
+#END OF PROJECTS LOOP
+
+if [ "$exitcomtool" != "exit" ]; then
+export ARDOC_BUILD_FROM_SCRATCH="no"
+export ARDOC_LOG_SCRATCH="no"
+fi
+
+${exitcomtool} 0
