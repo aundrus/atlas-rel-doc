@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Python migration of ardoc_errortester.pl
+Python migration of ardoc_errortester.pl using GitHub Copilot (GPT agent)
 Author: Migration by GitHub Copilot (original: A. Undrus)
 """
 import os
@@ -9,8 +9,8 @@ import re
 import argparse
 from pathlib import Path
 from html import escape
+import shutil
 
-# --- Argument parsing ---
 def parse_args():
     parser = argparse.ArgumentParser(description='Test logfiles for errors/warnings and generate HTML report.')
     parser.add_argument('-s', action='store_true', help='Short output')
@@ -21,128 +21,25 @@ def parse_args():
     parser.add_argument('args', nargs='*', help='Arguments as in the Perl script')
     return parser.parse_args()
 
-# --- Environment variable reading ---
 def get_env_vars():
     env = {}
     keys = [
         'ARDOC_LOG', 'ARDOC_TESTLOG', 'ARDOC_NINJALOG', 'ARDOC_HOME',
-        'ARDOC_PROJECT_NAME', 'ARDOC_PROJECT_RELNAME',
+        'ARDOC_PROJECT_NAME', 'ARDOC_PROJECT_RELNAME', 'ARDOC_PROJECT_RELNAME_COPY',
+        'ARDOC_WEBDIR', 'ARDOC_WEBPAGE', 'ARDOC_QALOG', 'ARDOC_VERSION',
         'ARDOC_TEST_SUCCESS_PATTERN', 'ARDOC_TEST_FAILURE_PATTERN', 'ARDOC_TEST_WARNING_PATTERN', 'ARDOC_BUILD_FAILURE_PATTERN',
         'ARDOC_QA_SUCCESS_PATTERN', 'ARDOC_QA_FAILURE_PATTERN', 'ARDOC_QA_WARNING_PATTERN',
-        'ARDOC_WEBDIR', 'ARDOC_WEBPAGE', 'ARDOC_QALOG'
     ]
     for k in keys:
         env[k] = os.environ.get(k, '')
+    if not env['ARDOC_BUILD_FAILURE_PATTERN']:
+        env['ARDOC_BUILD_FAILURE_PATTERN'] = 'CVBFGG'
     return env
 
-# --- Pattern setup (partial, for demonstration) ---
-E_PATTERNS = [
-    r": error:", r"CMake Error", r"runtime error:", r"No rule to make target", r"SyntaxError:",
-    r"raceback (most recent", r"CVBFGG", r"error: ld", r"error: Failed to execute", r"no build logfile"
-]
-E_IGNORE = [
-    r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"for NICOS_PROJECT_NAMERelease are"
-]
-
-# --- Additional patterns (warnings, minor warnings, success) ---
-W_PATTERNS = [
-    r"Errors/Problems found", r"CMake Warning", r"CMake Deprecation Warning", r"Error in", r"control reaches end of non-void",
-    r"suggest explicit braces", r"> Warning:", r"type qualifiers ignored on function return type", r"\[-Wsequence-point\]", r"mission denied",
-    r"nvcc warning :", r"Warning: Fortran", r"library.*\\sexposes\\s+factory.*\\sdeclared\\s+in"
-]
-W_IGNORE = [
-    r"Errors/Problems found : 0", r"CVBFGG", r"CVBFGG", r"msg", r"/external", r"/external", r"> Warning: template", r"/external", r"/external", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG"
-]
-M_PATTERNS = [
-    r": warning: ", r"Warning: the last line", r"Warning: Unused class rule", r"Warning:\\s.*rule", r"#pragma message:", r"WARNING\\s+.*GAUDI", r"CVBFGG"
-]
-M_IGNORE = [
-    r"make[", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"ClassIDSvc", r"CVBFGG"
-]
-S_PATTERNS = [
-    r"CVBFGG", r"Package build succeeded", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG"
-]
-
-# --- HTML header ---
 def header_print(f, prblm, test_nm):
-    comment = ''
-    if prblm == 0.5:
-        comment = 'M'
-    elif prblm == 1:
-        comment = 'W'
-    elif prblm == 2:
-        comment = 'E'
-    f.write(f"""<html>
-<!-- {comment} -->
-<style>
-body {{
-  color: black;
-  link: navy;
-  vlink: maroon;
-  alink: tomato;
-  background: floralwhite;
-  font-family: 'Lucida Console', 'Courier New', Courier, monospace;
-  font-size: 10pt;
-}}
-td.aid {{
-  background: #6600CC;
-  color: orangered;
-  text-align: center;
-}}
-td.ttl {{
-  color: #6600CC;
-  text-align: center;
-}}
-a.small {{
-  color: navy;
-  background: #FFCCFF;
-  font-family: Verdana, Arial, Helvetica, sans-serif;
-  font-size: 10pt;
-}}
-#prblm {{background-color: orange;}}
-#hdr0 {{
-  font-family: Verdana, Arial, Helvetica, sans-serif;
-  font-size: 14pt;
-}}
-#hdr {{
-background-color: #FFCCFF;
-  font-family:'Times New Roman',Garamond, Georgia, serif;
-  font-size: 14pt;
-}}
-#hdr1 {{
-background-color: #CFECEC;
-  font-family: Verdana, Arial, Helvetica, sans-serif;
-  font-size: 10pt;
-}}
-</style>
-<head><title>
-{test_nm} Logfile
-</title>
-</head>
-<BODY class=body marginwidth=\"0\" marginheight=\"0\" topmargin=\"0\" leftmargin=\"0\">
-""")
+    comment = {0.5: "M", 1: "W", 2: "E"}.get(prblm, "")
+    f.write(f'''<html>\n<!-- {comment} -->\n<style>\nbody {{\n  color: black; link: navy; vlink: maroon; alink: tomato;\n  background: floralwhite;\n  font-family: 'Lucida Console', 'Courier New', Courier, monospace;\n  font-size: 10pt;\n}}\ntd.aid {{ background: #6600CC; color: orangered; text-align: center; }}\ntd.ttl {{ color: #6600CC; text-align: center; }}\na.small {{ color: navy; background: #FFCCFF; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10pt; }}\n#prblm {{background-color: orange;}}\n#hdr0 {{ font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 14pt; }}\n#hdr {{ background-color: #FFCCFF; font-family:'Times New Roman',Garamond, Georgia, serif; font-size: 14pt; }}\n#hdr1 {{ background-color: #CFECEC; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10pt; }}\n</style>\n<head><title>{test_nm} Logfile</title></head>\n<BODY class=body marginwidth="0" marginheight="0" topmargin="0" leftmargin="0">\n''')
 
-# --- Generalized log scanning ---
-def scan_log(logfile, patterns, ignores):
-    found = []
-    with open(logfile, 'r', errors='ignore') as f:
-        for lineno, line in enumerate(f, 1):
-            for i, pat in enumerate(patterns):
-                if pat and re.search(pat, line) and not re.search(ignores[i], line):
-                    found.append((lineno, pat, line.strip()))
-    return found
-
-# --- HTML report writing ---
-def write_html_report(html_path, prblm, test_nm, summary, findings, logfile):
-    with open(html_path, 'w') as f:
-        header_print(f, prblm, test_nm)
-        f.write(f"<div id=hdr1><b>Original log file:</b><code> {escape(logfile)} </code><br></div>\n<p><pre>\n")
-        f.write(f"<b>{escape(summary)}</b><br>\n")
-        for lineno, pat, line in findings:
-            f.write(f"<div id='prblm'>Line {lineno}: Pattern '{escape(pat)}' in: {escape(line)}</div>\n")
-        f.write("</pre></body></html>\n")
-
-# --- Main logic (expanded with warnings and success) ---
 def main():
     args = parse_args()
     env = get_env_vars()
@@ -153,51 +50,100 @@ def main():
     testtesting = args.t
     qatesting = args.q
     light = args.l
-    if len(argv) < 4:
-        print("ardoc_errortester.py: Four arguments required: directory_package, release, tags file, package name")
-        sys.exit(2)
-    directory_package, release, tags_file, package_name = argv[:4]
-    logdir = Path(directory_package)
-    logfiles = list(logdir.glob('*.log*'))
-    if not logfiles:
-        print(f"No log files found in {logdir}")
-        sys.exit(1)
-    logfile = str(logfiles[0])
-    print(f"Scanning {logfile} for error, warning, and success patterns...")
-    errors = scan_log(logfile, E_PATTERNS, E_IGNORE)
-    warnings = scan_log(logfile, W_PATTERNS, W_IGNORE)
-    minors = scan_log(logfile, M_PATTERNS, M_IGNORE)
-    successes = scan_log(logfile, S_PATTERNS, ["CVBFGG"]*len(S_PATTERNS))
-    html_path = str(Path(logfile).with_suffix('.html'))
-    if testtesting or qatesting:
-        # Adjust logic for test/QA modes (stub, expand as needed)
-        print("Test/QA mode enabled. (Further logic to be implemented as in Perl script)")
-    if light:
-        print("Light mode enabled. (Limited error analysis)")
-    if errors:
-        summary = "Error pattern(s) found."
-        write_html_report(html_path, 2, package_name, summary, errors, logfile)
-        print(f"Found error patterns. HTML report written to {html_path}")
-        sys.exit(2)
-    elif warnings:
-        summary = "Warning pattern(s) found."
-        write_html_report(html_path, 1, package_name, summary, warnings, logfile)
-        print(f"Found warning patterns. HTML report written to {html_path}")
-        sys.exit(1)
-    elif minors:
-        summary = "Minor warning pattern(s) found."
-        write_html_report(html_path, 0.5, package_name, summary, minors, logfile)
-        print(f"Found minor warning patterns. HTML report written to {html_path}")
-        sys.exit(0)
-    elif not successes:
-        summary = "No success pattern found. This may indicate a problem."
-        write_html_report(html_path, 2, package_name, summary, [], logfile)
-        print(f"No success pattern found. HTML report written to {html_path}")
-        sys.exit(2)
+    if not testtesting and not qatesting:
+        if len(argv) != 4:
+            print("ardoc_errortester: Four arguments required: directory_package, release, tags file, package name")
+            sys.exit(2)
+        compname, release, filename, pkgname_full = argv
+        logdir = Path(os.path.dirname(env['ARDOC_LOG']))
     else:
-        summary = "No problems found. Logfile looks OK."
-        write_html_report(html_path, 0, package_name, summary, [], logfile)
-        print(f"No problems found. HTML report written to {html_path}")
+        if len(argv) != 2:
+            print("ardoc_errortester: Two arguments required: name of test, release")
+            sys.exit(2)
+        compname, release = argv
+        filename, pkgname_full = "", ""
+        logdir = Path(os.path.dirname(env['ARDOC_QALOG' if qatesting else 'ARDOC_TESTLOG']))
+    pkgname = Path(pkgname_full).name if pkgname_full else ""
+    # Patterns (subset, can be extended)
+    e_patterns = [": error:", "CMake Error", "runtime error:", "No rule to make target", env['ARDOC_BUILD_FAILURE_PATTERN']]
+    e_ignore = ["CVBFGG"] * len(e_patterns)
+    w_patterns = ["Errors/Problems found", "CMake Warning", "> Warning:"]
+    w_ignore = ["Errors/Problems found : 0", "CVBFGG", "> Warning: template"]
+    m_patterns = [": warning: ", "Warning: the last line"]
+    m_ignore = ["make[", "CVBFGG"]
+    s_patterns = ["Package build succeeded"]
+    # Find the log file
+    log_file_pattern = f"{compname}.loglog"
+    log_files = sorted(logdir.glob(log_file_pattern), key=os.path.getmtime, reverse=True)
+    if not log_files:
+        print(f"ardoc_errortester.py: No logfile found for {compname} in {logdir}")
+        sys.exit(0)
+    log_file = log_files[0]
+    html_file = log_file.with_suffix(".html")
+    # Scan the log file
+    errors, warnings, minors = [], [], []
+    first_error, first_warning, first_minor = None, None, None
+    with open(log_file, 'r', errors='ignore') as f:
+        for i, line in enumerate(f, 1):
+            for pat, ign in zip(e_patterns, e_ignore):
+                if pat != "CVBFGG" and re.search(pat, line) and not re.search(ign, line):
+                    if not first_error: first_error = (i, line.strip(), pat)
+                    errors.append(pat)
+            for pat, ign in zip(w_patterns, w_ignore):
+                if pat != "CVBFGG" and re.search(pat, line) and not re.search(ign, line):
+                    if not first_warning: first_warning = (i, line.strip(), pat)
+                    warnings.append(pat)
+            for pat, ign in zip(m_patterns, m_ignore):
+                if pat != "CVBFGG" and re.search(pat, line) and not re.search(ign, line):
+                    if not first_minor: first_minor = (i, line.strip(), pat)
+                    minors.append(pat)
+    # Determine problem level and message
+    problems = 0
+    mess = "No problems found"
+    linkline, linkvalue = 0, ""
+    if errors:
+        problems = 2
+        mess = f"Error pattern found: {first_error[2]}"
+        linkline, linkvalue = first_error[0], first_error[1]
+    elif warnings:
+        problems = 1
+        mess = f"Serious warning pattern found: {first_warning[2]}"
+        linkline, linkvalue = first_warning[0], first_warning[1]
+    elif minors:
+        problems = 0.5
+        mess = f"Minor warning pattern found: {first_minor[2]}"
+        linkline, linkvalue = first_minor[0], first_minor[1]
+    # Generate HTML report
+    with open(html_file, 'w', encoding='utf-8') as f_html:
+        header_print(f_html, problems, compname)
+        f_html.write(f'<div id=hdr1><b>{mess}</b><br>')
+        f_html.write(f'<b>Original log file:</b><CODE> {escape(str(log_file))} </CODE><BR></div>\n<P><PRE>\n')
+        with open(log_file, 'r', errors='ignore') as f_log:
+            for i, line in enumerate(f_log, 1):
+                safe_line = escape(line)
+                if i == linkline:
+                    f_html.write(f'<div id="prblm">{safe_line}</div>')
+                else:
+                    f_html.write(safe_line)
+        f_html.write("  </PRE>\n  <div id=\"end\">END OF LOGFILE</div>\n  </body>\n  </html>\n")
+    print(f"HTML report generated at: {html_file}")
+    # Copy to web directory if specified
+    if env['ARDOC_WEBDIR']:
+        web_log_dir_name = f"ARDOC_Log_{env['ARDOC_PROJECT_RELNAME_COPY']}"
+        if testtesting:
+            web_log_dir_name = f"ARDOC_TestLog_{env['ARDOC_PROJECT_RELNAME_COPY']}"
+        elif qatesting:
+            web_log_dir_name = f"ARDOC_QALog_{env['ARDOC_PROJECT_RELNAME_COPY']}"
+        dest_dir = Path(env['ARDOC_WEBDIR']) / web_log_dir_name
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(html_file, dest_dir / html_file.name)
+        print(f"Copied report to {dest_dir / html_file.name}")
+    # Exit with appropriate code
+    if problems == 2:
+        sys.exit(2)
+    elif problems == 1:
+        sys.exit(1)
+    else:
         sys.exit(0)
 
 if __name__ == "__main__":
