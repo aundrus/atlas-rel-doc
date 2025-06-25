@@ -27,10 +27,10 @@ if [ ! -d $LOCAL_AREA ]; then
 fi
 cd $LOCAL_AREA
 if [ "$checkout_from_scratch" -eq 1 ]; then
-  [[ -d nicos_doc_builder ]] && rm -rf nicos_doc_builder
+  [[ -d ardoc_doc_builder ]] && rm -rf ardoc_doc_builder
 fi
-[[ ! -d nicos_doc_builder ]] && git clone https://:@gitlab.cern.ch:8443/aundrus/nicos_doc_builder.git; stat1=$?
-cd nicos_doc_builder
+[[ ! -d ardoc_doc_builder ]] && git clone https://:@gitlab.cern.ch:8443/aundrus/ardoc_doc_builder.git; stat1=$?
+cd ardoc_doc_builder
 git pull origin CI01; stat2=$?
 if [ "$stat1" -ne 0 -o "$stat2" -ne 0 ]; then
   echo "jenkins_script_for_doc_build: Error: git clone, pull returned $stat1 $stat2"
@@ -43,5 +43,5 @@ git describe --always >> ../gitInfo 2>&1
 git log --pretty=format:"%h - %an, %cd %s" -5 >> ../gitInfo  2>&1
 #
 cd $LOCAL_AREA
-export NICOS_HOME=$LOCAL_AREA/nicos_doc_builder
-$NICOS_HOME/jobs/mr_doc_build
+export ARDOC_HOME=$LOCAL_AREA/ardoc_doc_builder
+$ARDOC_HOME/jobs/mr_doc_build

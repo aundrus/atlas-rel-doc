@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# NICOS - NIghtly COntrol System
+# ARDOC - NIghtly COntrol System
 # Author Alex Undrus <undrus@bnl.gov>
 #
 # ----------------------------------------------------------
@@ -18,12 +18,12 @@ else
 exitcomtool="return"
 fi
  
-#export NICOS_HOME="/afs/cern.ch/atlas/software/dist/ci/nicos_doc_builder"
-[[ "$NICOS_HOME" = "" ]] && echo "mr_doc_build: Error: NICOS_HOME is not set" && ${exitcomtool} 1
-[[ ! -d  $NICOS_HOME  ]] && echo "mr_doc_build: Error: NICOS_HOME $NICOS_HOME does not exist" && ${exitcomtool} 1
-[[ "$NICOS_ARCH" = "" ]] && echo "mr_doc_build: Error: NICOS_ARCH is not set" && ${exitcomtool} 1
-[[ "$NICOS_WEB_ACCESS_DIR" = "" ]] && echo "mr_doc_build: Error: NICOS_WEB_ACCESS_DIR is not set" && ${exitcomtool} 1
-[[ "$NICOS_HTTP" = "" ]] && echo "mr_doc_build: Error: NICOS_HTTP is not set" && ${exitcomtool} 1
+#export ARDOC_HOME="/afs/cern.ch/atlas/software/dist/ci/ardoc_doc_builder"
+[[ "$ARDOC_HOME" = "" ]] && echo "mr_doc_build: Error: ARDOC_HOME is not set" && ${exitcomtool} 1
+[[ ! -d  $ARDOC_HOME  ]] && echo "mr_doc_build: Error: ARDOC_HOME $ARDOC_HOME does not exist" && ${exitcomtool} 1
+[[ "$ARDOC_ARCH" = "" ]] && echo "mr_doc_build: Error: ARDOC_ARCH is not set" && ${exitcomtool} 1
+[[ "$ARDOC_WEB_ACCESS_DIR" = "" ]] && echo "mr_doc_build: Error: ARDOC_WEB_ACCESS_DIR is not set" && ${exitcomtool} 1
+[[ "$ARDOC_HTTP" = "" ]] && echo "mr_doc_build: Error: ARDOC_HTTP is not set" && ${exitcomtool} 1
 [[ "$MR_PATH_TO_SOURCE" = "" ]] && echo "mr_doc_build: Error: MR_PATH_TO_SOURCE is not set" && ${exitcomtool} 1
 [[ ! -d  $MR_PATH_TO_SOURCE  ]] && echo "mr_doc_build: Error: MR_PATH_TO_SOURCE $MR_PATH_TO_SOURCE does not exist" && ${exitcomtool} 1
 [[ "$BUILD_DIR" = "" ]] && echo "mr_doc_build: Error: BUILD_DIR is not set" && ${exitcomtool} 1
@@ -34,21 +34,21 @@ fi
 [[ "$MR_PATH_TO_EXTBUILDLOG" = "" ]] && export MR_PATH_TO_EXTBUILDLOG=/afs/cern.ch/atlas/software/dist/ci/testfiles/test_extbuild.log
 [[ "$MR_PATH_TO_CONFTESTLOG" = "" ]] && export MR_PATH_TO_CONFTESTLOG=/afs/cern.ch/atlas/software/dist/ci/testfiles/test_config.log
 #
-export NICOS_EPOCH=`date +%s.%N`
-export NICOS_MASTER_EPOCH=$NICOS_EPOCH
-dateString=`date +%Y-%m-%d-%H-%M -d@${NICOS_EPOCH}`
+export ARDOC_EPOCH=`date +%s.%N`
+export ARDOC_MASTER_EPOCH=$ARDOC_EPOCH
+dateString=`date +%Y-%m-%d-%H-%M -d@${ARDOC_EPOCH}`
 release="MR-0001-${dateString}"
-if [[ "$NICOS_PROJECT_RELNAME" = "" ]]; then
-   echo "mr_doc_build: Warning: NICOS_PROJECT_RELNAME (release name) is not set" 
-   echo "mr_doc_build: Warning: setting NICOS_PROJECT_RELNAME to $release"
-   export NICOS_PROJECT_RELNAME=${release} 
+if [[ "$ARDOC_PROJECT_RELNAME" = "" ]]; then
+   echo "mr_doc_build: Warning: ARDOC_PROJECT_RELNAME (release name) is not set" 
+   echo "mr_doc_build: Warning: setting ARDOC_PROJECT_RELNAME to $release"
+   export ARDOC_PROJECT_RELNAME=${release} 
 fi
 [[ "$MR_GITLAB_LINK" = "" ]] && echo "mr_doc_build: Warning MR_GITLAB_LINK (link to GitLab merge request) is not set"
 nightlyName="MR-CI-builds"
 [[ "$PARENT_JOB_NAME" =~ ^.*TRAINING.*$ ]] && nightlyName="MR-training"
-startTime=$NICOS_EPOCH
-endTime=$NICOS_EPOCH
-dirNicosHome=`dirname $NICOS_HOME`
+startTime=$ARDOC_EPOCH
+endTime=$ARDOC_EPOCH
+dirNicosHome=`dirname $ARDOC_HOME`
 
 #while [ $# -ne 0 ]; do
 #    case $1 in
@@ -60,65 +60,65 @@ dirNicosHome=`dirname $NICOS_HOME`
 #    shift
 #done
 
-export NICOS_NIGHTLY_NAME=$nightlyName
-export NICOS_NIGHTLY_GROUP="CI"
-## just in case: NICOS_PROJECT_HOME should not be used anymore...
-export NICOS_PROJECT_HOME=$NICOS_RELHOME
-export NICOS_SOURCEHOME="$MR_PATH_TO_SOURCE"
-export NICOS_STARTTIME=$startTime
-export NICOS_ENDTIME=$endTime
-export NICOS_COMMON_CONFIG_AREA="/afs/cern.ch/atlas/software/dist/ci/nicos_config_area_doc"
-export NICOS_CONFIG_AREA=""
-export NICOS_BUILD_FROM_SCRATCH="yes"
-export NICOS_LOG_SCRATCH="yes"
-export NICOS_HTTP_BUILD=$NICOS_HTTP
+export ARDOC_NIGHTLY_NAME=$nightlyName
+export ARDOC_NIGHTLY_GROUP="CI"
+## just in case: ARDOC_PROJECT_HOME should not be used anymore...
+export ARDOC_PROJECT_HOME=$ARDOC_RELHOME
+export ARDOC_SOURCEHOME="$MR_PATH_TO_SOURCE"
+export ARDOC_STARTTIME=$startTime
+export ARDOC_ENDTIME=$endTime
+export ARDOC_COMMON_CONFIG_AREA="/afs/cern.ch/atlas/software/dist/ci/ardoc_config_area_doc"
+export ARDOC_CONFIG_AREA=""
+export ARDOC_BUILD_FROM_SCRATCH="yes"
+export ARDOC_LOG_SCRATCH="yes"
+export ARDOC_HTTP_BUILD=$ARDOC_HTTP
 #FOR ORACLE SCRIPTS COMPATIBILITY
-###export NICOS_GEN_CONFIG_AREA=$NICOS_COMMON_CONFIG_AREA
-export NICOS_GEN_CONFIG_AREA=$dirNicosHome/nicos_local_gen_config_area
-[[ ! -d  $dirNicosHome/nicos_local_gen_config_area ]] && mkdir $dirNicosHome/nicos_local_gen_config_area
-export NICOS_ATLAS_RELEASE='N/A'
-export NICOS_ATLAS_ALT_RELEASE='N/A'
-export NICOS_ORACLE_SCHEMA="ATLAS_NICOS"
-export NICOS_NIGHTLY_ROLE='master'
+###export ARDOC_GEN_CONFIG_AREA=$ARDOC_COMMON_CONFIG_AREA
+export ARDOC_GEN_CONFIG_AREA=$dirNicosHome/ardoc_local_gen_config_area
+[[ ! -d  $dirNicosHome/ardoc_local_gen_config_area ]] && mkdir $dirNicosHome/ardoc_local_gen_config_area
+export ARDOC_ATLAS_RELEASE='N/A'
+export ARDOC_ATLAS_ALT_RELEASE='N/A'
+export ARDOC_ORACLE_SCHEMA="ATLAS_ARDOC"
+export ARDOC_NIGHTLY_ROLE='master'
 # END FOR ORACLE SCRIPTS COMPATIBILITY
-[[ "$NICOS_PROJECT_NAME" = "" ]] && export NICOS_PROJECT_NAME="Athena"
-[[ "${NICOS_PROJECT_ARRAY}" = "" ]] && export NICOS_PROJECT_ARRAY="${NICOS_PROJECT_NAME}"
-parray=(${NICOS_PROJECT_ARRAY})
-parray_max=(${NICOS_PROJECT_ARRAY_MAX})
+[[ "$ARDOC_PROJECT_NAME" = "" ]] && export ARDOC_PROJECT_NAME="Athena"
+[[ "${ARDOC_PROJECT_ARRAY}" = "" ]] && export ARDOC_PROJECT_ARRAY="${ARDOC_PROJECT_NAME}"
+parray=(${ARDOC_PROJECT_ARRAY})
+parray_max=(${ARDOC_PROJECT_ARRAY_MAX})
 el_parray=${#parray[@]}
 el_parray_max=${#parray_max[@]}
-export LEN_NICOS_PROJECT_ARRAY="${el_parray}"
-export LEN_NICOS_PROJECT_ARRAY_MAX="${el_parray_max}"
-echo "mr_doc_build: INFO: LEN_NICOS_PROJECT_ARRAY and LEN_NICOS_PROJECT_ARRAY_MAX ${LEN_NICOS_PROJECT_ARRAY} and ${LEN_NICOS_PROJECT_ARRAY_MAX}"
-# NICOS_SCRATCH_INDICATOR: 0 - no scratch, 1 - from scratch, 
+export LEN_ARDOC_PROJECT_ARRAY="${el_parray}"
+export LEN_ARDOC_PROJECT_ARRAY_MAX="${el_parray_max}"
+echo "mr_doc_build: INFO: LEN_ARDOC_PROJECT_ARRAY and LEN_ARDOC_PROJECT_ARRAY_MAX ${LEN_ARDOC_PROJECT_ARRAY} and ${LEN_ARDOC_PROJECT_ARRAY_MAX}"
+# ARDOC_SCRATCH_INDICATOR: 0 - no scratch, 1 - from scratch, 
 # 2 - incomplete scratch, 3 - from scratch due to full-build label,
 # 4 - incomplete scratch due to full-build label, 9 - unknown 
-export NICOS_SCRATCH_INDICATOR=9
+export ARDOC_SCRATCH_INDICATOR=9
 if [ "${gitlabMergeRequestId}" != "" ]; then
   FILE_SCRATCH_INDICATOR=${BUILD_DIR}/scratch${gitlabMergeRequestId}
   if [ -f ${FILE_SCRATCH_INDICATOR} ]; then
     scratch_indicator=`cat ${FILE_SCRATCH_INDICATOR} | head -1`
-    [[ "${scratch_indicator}" -eq 0 || "${scratch_indicator}" -eq 1 || "${scratch_indicator}" -eq 2 || "${scratch_indicator}" -eq 3 || "${scratch_indicator}" -eq 4 ]] && NICOS_SCRATCH_INDICATOR=${scratch_indicator}
+    [[ "${scratch_indicator}" -eq 0 || "${scratch_indicator}" -eq 1 || "${scratch_indicator}" -eq 2 || "${scratch_indicator}" -eq 3 || "${scratch_indicator}" -eq 4 ]] && ARDOC_SCRATCH_INDICATOR=${scratch_indicator}
   fi
 fi
-echo "mr_doc_build: INFO: NICOS_SCRATCH_INDICATOR is set ${NICOS_SCRATCH_INDICATOR}"
-export NICOS_FULLBUILD_LABEL='False'
-export NICOS_FULLUNIT_LABEL='False'
-export NICOS_FULLINTEGR_LABEL='False'
-export NICOS_LONGTESTS_LABEL='False'
+echo "mr_doc_build: INFO: ARDOC_SCRATCH_INDICATOR is set ${ARDOC_SCRATCH_INDICATOR}"
+export ARDOC_FULLBUILD_LABEL='False'
+export ARDOC_FULLUNIT_LABEL='False'
+export ARDOC_FULLINTEGR_LABEL='False'
+export ARDOC_LONGTESTS_LABEL='False'
 if [ "$CI_LABELS_LIST" != "" ]; then
   if [ -f ${CI_LABELS_LIST} ]; then
     cat ${CI_LABELS_LIST} | sed 's/ *$//g' | sed 's/^ *//g' | grep "full-build" >/dev/null; stat_fb=$?
     cat ${CI_LABELS_LIST} | sed 's/ *$//g' | sed 's/^ *//g' | grep "full-unit-tests" >/dev/null; stat_fu=$?
     cat ${CI_LABELS_LIST} | sed 's/ *$//g' | sed 's/^ *//g' | grep "full-integration-tests" >/dev/null; stat_fi=$?
     cat ${CI_LABELS_LIST} | sed 's/ *$//g' | sed 's/^ *//g' | grep "LongTests" >/dev/null; stat_lt=$?
-    [[ "${stat_fb}" -eq 0 ]] && NICOS_FULLBUILD_LABEL='True' 
-    [[ "${stat_fu}" -eq 0 ]] && NICOS_FULLUNIT_LABEL='True'
-    [[ "${stat_fi}" -eq 0 ]] && NICOS_FULLINTEGR_LABEL='True'
-    [[ "${stat_lt}" -eq 0 ]] && NICOS_LONGTESTS_LABEL='True'
+    [[ "${stat_fb}" -eq 0 ]] && ARDOC_FULLBUILD_LABEL='True' 
+    [[ "${stat_fu}" -eq 0 ]] && ARDOC_FULLUNIT_LABEL='True'
+    [[ "${stat_fi}" -eq 0 ]] && ARDOC_FULLINTEGR_LABEL='True'
+    [[ "${stat_lt}" -eq 0 ]] && ARDOC_LONGTESTS_LABEL='True'
   fi
 fi
-echo "mr_doc_build: INFO: specialty labels ${NICOS_FULLBUILD_LABEL} ${NICOS_FULLUNIT_LABEL} ${NICOS_FULLINTEGR_LABEL} ${NICOS_LONGTESTS_LABEL}"
+echo "mr_doc_build: INFO: specialty labels ${ARDOC_FULLBUILD_LABEL} ${ARDOC_FULLUNIT_LABEL} ${ARDOC_FULLINTEGR_LABEL} ${ARDOC_LONGTESTS_LABEL}"
 dir_dict=""
 if [ "$CI_RESULTS_DICT" != "" ]; then
   if [ -f $CI_RESULTS_DICT ]; then
@@ -149,32 +149,32 @@ fi
 
 ############START OF PROJECTS LOOP#############
 inum=0
-for PROJECT in ${NICOS_PROJECT_ARRAY} 
+for PROJECT in ${ARDOC_PROJECT_ARRAY} 
 do
 ((inum++))
-export NICOS_PROJECT_NAME=${PROJECT}
-export NICOS_PROJECT_NUMBER=${inum}
-export NICOS_JOB_LOG=$dirNicosHome/job_logs/log_${NICOS_PROJECT_RELNAME}_${NICOS_PROJECT_NAME}
+export ARDOC_PROJECT_NAME=${PROJECT}
+export ARDOC_PROJECT_NUMBER=${inum}
+export ARDOC_JOB_LOG=$dirNicosHome/job_logs/log_${ARDOC_PROJECT_RELNAME}_${ARDOC_PROJECT_NAME}
 [[ ! -d  $dirNicosHome/job_logs ]] && mkdir $dirNicosHome/job_logs
 project_string=""
-[[ ${NICOS_PROJECT_NAME} != "" ]] && project_string=", PROJECT ${NICOS_PROJECT_NAME}"
-[[ ${NICOS_PROJECT_NUMBER} != "" ]] && project_string="${project_string}, SEQ. NUMBER ${NICOS_PROJECT_NUMBER}"
-export NICOS_TARGET_BRANCH=${MR_TARGET_BRANCH}
-[[ ${NICOS_TARGET_BRANCH} = "" ]] && NICOS_TARGET_BRANCH="UNKNOWN"
-echo "mr_doc_build: INFO: starting building docs for ${NICOS_PROJECT_RELNAME}${project_string} (git branch $NICOS_TARGET_BRANCH) at $dateString, log log_${NICOS_PROJECT_RELNAME}_${NICOS_PROJECT_NAME}"
-echo "mr_doc_build: INFO: starting building docs for ${NICOS_PROJECT_RELNAME}${project_string} (git branch $NICOS_TARGET_BRANCH) at $dateString" > $NICOS_JOB_LOG
-export NICOS_CTEST_TAILOR_LIST=""
+[[ ${ARDOC_PROJECT_NAME} != "" ]] && project_string=", PROJECT ${ARDOC_PROJECT_NAME}"
+[[ ${ARDOC_PROJECT_NUMBER} != "" ]] && project_string="${project_string}, SEQ. NUMBER ${ARDOC_PROJECT_NUMBER}"
+export ARDOC_TARGET_BRANCH=${MR_TARGET_BRANCH}
+[[ ${ARDOC_TARGET_BRANCH} = "" ]] && ARDOC_TARGET_BRANCH="UNKNOWN"
+echo "mr_doc_build: INFO: starting building docs for ${ARDOC_PROJECT_RELNAME}${project_string} (git branch $ARDOC_TARGET_BRANCH) at $dateString, log log_${ARDOC_PROJECT_RELNAME}_${ARDOC_PROJECT_NAME}"
+echo "mr_doc_build: INFO: starting building docs for ${ARDOC_PROJECT_RELNAME}${project_string} (git branch $ARDOC_TARGET_BRANCH) at $dateString" > $ARDOC_JOB_LOG
+export ARDOC_CTEST_TAILOR_LIST=""
 if [ "${dir_dict}" != "" -a ${gitlabMergeRequestId} != "" ]; then
   nctl="${dir_dict}/ctestlist${PROJECT}_${gitlabMergeRequestId}.pkl"
-  [[ -f ${nctl} ]] && NICOS_CTEST_TAILOR_LIST=${dir_dict}/ctestlist${PROJECT}_${gitlabMergeRequestId}.pkl     
+  [[ -f ${nctl} ]] && ARDOC_CTEST_TAILOR_LIST=${dir_dict}/ctestlist${PROJECT}_${gitlabMergeRequestId}.pkl     
 fi
-echo "mr_doc_build: INFO: NICOS_CTEST_TAILOR_LIST: ${NICOS_CTEST_TAILOR_LIST} (components ${dir_dict},${PROJECT}_${gitlabMergeRequestId})"
-echo "mr_doc_build: INFO: NICOS_CTEST_TAILOR_LIST: ${NICOS_CTEST_TAILOR_LIST} (components ${dir_dict},${PROJECT}_${gitlabMergeRequestId})" >> $NICOS_JOB_LOG
+echo "mr_doc_build: INFO: ARDOC_CTEST_TAILOR_LIST: ${ARDOC_CTEST_TAILOR_LIST} (components ${dir_dict},${PROJECT}_${gitlabMergeRequestId})"
+echo "mr_doc_build: INFO: ARDOC_CTEST_TAILOR_LIST: ${ARDOC_CTEST_TAILOR_LIST} (components ${dir_dict},${PROJECT}_${gitlabMergeRequestId})" >> $ARDOC_JOB_LOG
 # SET paths to release build area
 #export MR_PATH_TO_BUILD=${BUILD_DIR}/${PROJECT}/build/${PROJECT}
-export NICOS_RELHOME="${BUILD_DIR}/${PROJECT}/build/${PROJECT}"
+export ARDOC_RELHOME="${BUILD_DIR}/${PROJECT}/build/${PROJECT}"
 # SET path to cmake configuration output
-export MR_PATH_TO_CONFBUILDLOG=${NICOS_RELHOME}/${MR_RELPATH_TO_CONFBUILDLOG}
+export MR_PATH_TO_CONFBUILDLOG=${ARDOC_RELHOME}/${MR_RELPATH_TO_CONFBUILDLOG}
 
 export MR_PATH_TO_EXTBUILD=${BUILD_DIR}/${PROJECT}/build/${PROJECT}Externals
 export MR_PATH_TO_EXTBUILDLOG=${BUILD_DIR}/${PROJECT}/build/${PROJECT}/external_build_combined.log
@@ -201,21 +201,21 @@ if [ -f ${MR_PATH_TO_EXTBUILD}/cmake_install.log ]; then
 fi
 fi
 if [ ! -f ${MR_PATH_TO_EXTBUILD}/cmake_build.log ]; then
-  if [ "${NICOS_PROJECT_NAME}" = "AthDataQuality" -o "${NICOS_PROJECT_NAME}" = "DetCommon" ]; then
+  if [ "${ARDOC_PROJECT_NAME}" = "AthDataQuality" -o "${ARDOC_PROJECT_NAME}" = "DetCommon" ]; then
     echo "========================================================================================" >> ${MR_PATH_TO_EXTBUILDLOG}
-    echo "==========EXTERNALS WERE NOT BUILT FOR ${NICOS_PROJECT_NAME} PROJECT (expected)=========" >> ${MR_PATH_TO_EXTBUILDLOG} 
+    echo "==========EXTERNALS WERE NOT BUILT FOR ${ARDOC_PROJECT_NAME} PROJECT (expected)=========" >> ${MR_PATH_TO_EXTBUILDLOG} 
     echo "========================================================================================" >> ${MR_PATH_TO_EXTBUILDLOG} 
   fi
 fi
 
-export NICOS_SUFFIX_PREPEND=` echo ${NICOS_NIGHTLY_NAME} | sed 's/[^a-zA-Z0-9_]//g'`
-suff1=`/bin/sh -c :;(export NICOS_PROJECT_NAME="PRJ"; unset NICOS_SUFFIX; ${NICOS_HOME}/nicos_project_suffix_creator.pl)`
-suff2=`/bin/sh -c :;(export NICOS_PROJECT_NAME="$proj"; unset NICOS_SUFFIX; ${NICOS_HOME}/nicos_project_suffix_creator.pl)`
+export ARDOC_SUFFIX_PREPEND=` echo ${ARDOC_NIGHTLY_NAME} | sed 's/[^a-zA-Z0-9_]//g'`
+suff1=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="PRJ"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
+suff2=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="$proj"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
 suff=`echo $suff1 | sed 's/PRJ//'`
 
-echo "nicos_job_doc: INFO: NICOS preliminary env:" >> $NICOS_JOB_LOG
-env | grep NICOS >> $NICOS_JOB_LOG
-echo "=============== end NICOS preliminary env" >> $NICOS_JOB_LOG
+echo "ardoc_job_doc: INFO: ARDOC preliminary env:" >> $ARDOC_JOB_LOG
+env | grep ARDOC >> $ARDOC_JOB_LOG
+echo "=============== end ARDOC preliminary env" >> $ARDOC_JOB_LOG
 
 if [ "$exitcomtool" = "exit" ]; then
 if [[ "${PARENT_JOB_NAME}" =~ ^.*TRAINING.*$ ]]; then
@@ -232,28 +232,28 @@ if [[ "${PARENT_JOB_NAME}" =~ ^.*TRAINING.*$ ]]; then
     fi
 fi
 ###
-${NICOS_HOME}/nicos_job_doc  >> $NICOS_JOB_LOG 2>&1
+${ARDOC_HOME}/ardoc_job_doc  >> $ARDOC_JOB_LOG 2>&1
 ###
 if [[ "${PARENT_JOB_NAME}" =~ ^.*TRAINING.*$ ]]; then
-    echo "mr_doc_build: INFO: begin domain analysis " >> $NICOS_JOB_LOG 
+    echo "mr_doc_build: INFO: begin domain analysis " >> $ARDOC_JOB_LOG 
     if [ "${MR_TRAINING_DOMAIN}" = "" ]; then 
         echo "mr_doc_build: Warning: MR_TRAINING_DOMAIN is not defined, skip domain analysis"
     elif [[ "${MR_TRAINING_DOMAIN}" =~ ^.*AAAA.*$ ]]; then
         echo "mr_doc_build: Warning: MR_TRAINING_DOMAIN name is false - ${MR_TRAINING_DOMAIN}, skip domain analysis"
     else  
         echo "mr_doc_build: INFO: MR_TRAINING_DOMAIN ${MR_TRAINING_DOMAIN}"
-        ${NICOS_HOME}/nicos_oracle_domains_wrapper.sh >> $NICOS_JOB_LOG 2>&1
+        ${ARDOC_HOME}/ardoc_oracle_domains_wrapper.sh >> $ARDOC_JOB_LOG 2>&1
     fi
 else # "${PARENT_JOB_NAME}" =~ ^.*TRAINING.*$
     bypass_domain_updater="False"
-    [[ "${NICOS_TARGET_BRANCH}" != "main" && "${NICOS_TARGET_BRANCH}" != "23.0" ]] && bypass_domain_updater="True"
+    [[ "${ARDOC_TARGET_BRANCH}" != "main" && "${ARDOC_TARGET_BRANCH}" != "23.0" ]] && bypass_domain_updater="True"
     [[ "${PROJECT}" != "Athena" && "${PROJECT}" != "AthSimulation" ]] && bypass_domain_updater="True"
     if [ "${bypass_domain_updater}" = "True" ]; then
-        echo "mr_doc_build: INFO: bypassing domain data update: branch ${NICOS_TARGET_BRANCH}, project ${PROJECT}"
+        echo "mr_doc_build: INFO: bypassing domain data update: branch ${ARDOC_TARGET_BRANCH}, project ${PROJECT}"
     else
-        echo "mr_doc_build: INFO: begin domain data update (based on the job's ci test results) " >> $NICOS_JOB_LOG
-        echo "mr_doc_build: INFO: perform domain data update (based on the job's ci test results), details in $NICOS_JOB_LOG"
-        ${NICOS_HOME}/nicos_oracle_domains_updater_wrapper.sh >> $NICOS_JOB_LOG 2>&1
+        echo "mr_doc_build: INFO: begin domain data update (based on the job's ci test results) " >> $ARDOC_JOB_LOG
+        echo "mr_doc_build: INFO: perform domain data update (based on the job's ci test results), details in $ARDOC_JOB_LOG"
+        ${ARDOC_HOME}/ardoc_oracle_domains_updater_wrapper.sh >> $ARDOC_JOB_LOG 2>&1
     fi
     :;
 fi
@@ -263,8 +263,8 @@ done
 #END OF PROJECTS LOOP
 
 if [ "$exitcomtool" != "exit" ]; then
-export NICOS_BUILD_FROM_SCRATCH="no"
-export NICOS_LOG_SCRATCH="no"
+export ARDOC_BUILD_FROM_SCRATCH="no"
+export ARDOC_LOG_SCRATCH="no"
 fi
 
 ${exitcomtool} 0

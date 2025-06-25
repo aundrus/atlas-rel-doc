@@ -1,0 +1,365 @@
+#!/bin/sh
+# ARDOC - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+# 
+# ----------------------------------------------------------
+# ardoc_config: script that sets ardoc environment
+#               supposed to be sourced from Bourne shell 
+# ----------------------------------------------------------
+#
+#echo "------------------------------------------------------------"
+#echo "   Starting ARDOC configuration"
+#echo "------------------------------------------------------------"
+ARDOC_VERSION=`cat $ARDOC_HOME/ardoc.version | head -1`
+export ARDOC_VERSION
+
+if [ "$ARDOC_CONFIG_AREA" = "" -a "$ARDOC_COMMON_CONFIG_AREA" = "" -a "$ARDOC_GEN_CONFIG_AREA" = "" ]; then
+echo " ardoc_config: FATAL: ardoc_config: none of ARDOC_*CONFIG_AREA are defined"
+echo " ardoc_config: Define this area with ardoc cache file before running ardoc" 
+return 1
+fi
+
+dir_ardochome=`dirname ${ARDOC_HOME}`
+###dir_ardochome="${ARDOC_RELHOME}"
+export ARDOC_DOCHOME=$dir_ardochome/ardoc_doc_work/${ARDOC_PROJECT_RELNAME}
+export ARDOC_WORK_AREA=${ARDOC_DOCHOME}/ardoc_work_area$$
+
+if [ -d "$ARDOC_WORK_AREA" ]; then
+rm -rf ${ARDOC_WORK_AREA}
+fi 
+
+mkdir -p ${ARDOC_WORK_AREA}; stat=$?
+if [ "$stat" -ne 0 ]; then
+echo "ardoc_config: cannot create work area ${ARDOC_WORK_AREA}"
+return ${stat}
+fi
+
+cache=""
+common_cache=""
+gen_cache=""
+gen_cache_extra=""
+
+if [ -f ${ARDOC_CONFIG_AREA}/ardoc_cache ]; then
+cache=${ARDOC_CONFIG_AREA}/ardoc_cache
+fi
+if [ -f ${ARDOC_GEN_CONFIG_AREA}/ardoc_cache ]; then
+gen_cache=${ARDOC_GEN_CONFIG_AREA}/ardoc_cache
+fi
+if [ -f ${ARDOC_GEN_CONFIG_AREA}/ardoc_cache ]; then
+gen_cache_extra=${ARDOC_GEN_CONFIG_AREA}/ardoc_cache_extra
+fi
+if [ -f ${ARDOC_COMMON_CONFIG_AREA}/ardoc_cache ]; then
+common_cache=${ARDOC_COMMON_CONFIG_AREA}/ardoc_cache
+fi
+
+if [ "$gen_cache" = "" -a  "$common_cache" = "" -a "$cache" = "" ]; then
+echo "ardoc_config: FATAL: ardoc_cache is not found"
+return 1
+fi
+
+# determine if common configuration file is defined in "cache" 
+if [ "${ARDOC_COMMON_CONFIG_AREA}" != "" ]; then
+if [ -f "${ARDOC_COMMON_CONFIG_AREA}/ardoc_cache" ]; then
+echo "ardoc_config: will take into account common config area ${ARDOC_COMMON_CONFIG_AREA}"
+common_cache="${ARDOC_COMMON_CONFIG_AREA}/ardoc_cache"
+else
+echo "ardoc_config: will ignore indicated common config area ${ARDOC_COMMON_CONFIG_AREA}:"
+echo "              it does not contain cache file"
+ARDOC_COMMON_CONFIG_AREA=""
+fi
+fi
+export ARDOC_COMMON_CONFIG_AREA
+
+export ARDOC_HOSTNAME=`hostname`
+
+# (0) setting project location variables
+sf=""
+rm -f ${ARDOC_WORK_AREA}/cache_scan_result
+rm -f ${ARDOC_WORK_AREA}/cache_scan_result_saved
+rm -f ${ARDOC_WORK_AREA}/cache_scan_result_gen
+if [ "${gen_cache}" != "" ]; then caches=" -f ${gen_cache}"; fi
+if [ "${gen_cache_extra}" != "" ]; then caches="${caches} -f ${gen_cache_extra}"; fi
+if [ "${common_cache}" != "" ]; then caches=" -f ${common_cache}${caches}"; fi
+if [ "${cache}" !=	"" ]; then caches="${caches} -f ${cache}"; fi
+${ARDOC_HOME}/ardoc_cachescan.pl -d "PROJECT SETTINGS" ${caches}
+source ${ARDOC_WORK_AREA}/cache_scan_result
+
+#if [ "$relname" != "" ]; then ARDOC_PROJECT_RELNAME="$relname"; fi
+#unset relname
+
+cat ${ARDOC_WORK_AREA}/cache_scan_result > ${ARDOC_WORK_AREA}/cache_scan_result_saved
+rm -f ${ARDOC_WORK_AREA}/cache_scan_result
+touch ${ARDOC_WORK_AREA}/cache_scan_result_gen
+if [ "${gen_cache}" != "" ]; then
+${ARDOC_HOME}/ardoc_cachescan.pl -c "PROJECT SETTINGS" -f ${gen_cache}
+cat ${ARDOC_WORK_AREA}/cache_scan_result >> ${ARDOC_WORK_AREA}/cache_scan_result_gen
+fi
+rm -f ${ARDOC_WORK_AREA}/cache_scan_result
+#
+${ARDOC_HOME}/ardoc_cachescan.pl -c "PROJECT SETTINGS" ${caches}
+#
+cat ${ARDOC_WORK_AREA}/cache_scan_result >> ${ARDOC_WORK_AREA}/cache_scan_result_saved
+
+ARDOC_NIGHTLY_NAME_PRELIM=`(unset ARDOC_NIGHTLY_NAME; source ${ARDOC_WORK_AREA}/cache_scan_result > /dev/null 2>&1; echo $ARDOC_NIGHTLY_NAME)`
+if [ "$ARDOC_NIGHTLY_NAME_PRELIM" != "" ]; then
+ARDOC_NIGHTLY_NAME="$ARDOC_NIGHTLY_NAME_PRELIM"
+export ARDOC_NIGHTLY_NAME
+fi
+
+ARDOC_PROJECT_NAME_PRELIM=`(unset ARDOC_PROJECT_NAME; source ${ARDOC_WORK_AREA}/cache_scan_result > /dev/null 2>&1; echo $ARDOC_PROJECT_NAME)`
+if [ "$ARDOC_PROJECT_NAME_PRELIM" != "" ]; then
+ARDOC_PROJECT_NAME="$ARDOC_PROJECT_NAME_PRELIM"
+export ARDOC_PROJECT_NAME
+fi
+
+## ARDOC_PROJECT_HOME should not be used anymore
+##ARDOC_PROJECT_HOME_PRELIM=`(unset ARDOC_PROJECT_HOME; source ${ARDOC_WORK_AREA}/cache_scan_result > /dev/null 2>&1; echo $ARDOC_PROJECT_HOME)`
+##if [ "$ARDOC_PROJECT_HOME_PRELIM" = "" ]; then
+##echo "ardoc_config failed: ARDOC_PROJECT_HOME is not defined in ardoc cache or existing environment"
+##return 1
+##fi
+
+#CALCULATING ARDOC_SUFFIX
+ARDOC_SUFFIX_1=`/bin/sh -c :;(unset ARDOC_SUFFIX; source ${ARDOC_WORK_AREA}/cache_scan_result > /dev/null 2>&1; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
+if [ "$ARDOC_SUFFIX" != "" -a "$ARDOC_SUFFIX_1" != "WORK_RELEASE" ]; then
+if [ "$ARDOC_SUFFIX" != "$ARDOC_SUFFIX_1" ]; then
+  echo "ardoc_config: error: ardoc_suffix determined by ardoc_config is different in the environment: $ARDOC_SUFFIX XX $ARDOC_SUFFIX_1" 
+  return 1
+fi
+fi
+export ARDOC_SUFFIX=$ARDOC_SUFFIX_1
+
+#FINAL SCAN OF ENVIRONMENT DEFINED IN PROJECT SETTINGS SECTION 
+source ${ARDOC_WORK_AREA}/cache_scan_result
+
+#MOVE WORK AREA TO PERMANENT LOCATION
+ardoc_work_area_tmp=${ARDOC_WORK_AREA}
+ARDOC_WORK_AREA=${ARDOC_DOCHOME}/ardoc_work_area${ARDOC_SUFFIX}
+export ARDOC_WORK_AREA
+if [ ! -d $ARDOC_WORK_AREA ]; then
+mkdir -p ${ARDOC_WORK_AREA}
+fi
+cp -Rp ${ardoc_work_area_tmp}/* ${ARDOC_WORK_AREA}/.
+rm -rf ${ardoc_work_area_tmp} 
+
+########!!!!!!!!!!!!!!
+relnum=0;
+
+ARDOC_PROJECT_ARRAY_S=""
+if [ "${ARDOC_PROJECT_ARRAY}" != "" ]; then
+ar_pj=(${ARDOC_PROJECT_ARRAY})
+el_pj=${#ar_pj[@]}
+if [ "${el_pj}" -gt 0 ]; then
+for ((ii=0 ; ii < el_pj ; ii++ ))
+do
+  sn=`python $ARDOC_HOME/ardoc_project_translator.py ${ar_pj[ii]}`
+  if [ "$ARDOC_PROJECT_ARRAY_S" = "" ]; then
+    ARDOC_PROJECT_ARRAY_S="${sn}"
+  else
+    ARDOC_PROJECT_ARRAY_S="${ARDOC_PROJECT_ARRAY_S} ${sn}"
+  fi
+done
+export ARDOC_PROJECT_ARRAY_S
+fi # if [ "${el_pj}" -gt 0 ]; then
+fi # if [ "${ARDOC_PROJECT_ARRAY}" != "" ]
+
+ARDOC_PROJECT_RELNAME_GEN=${ARDOC_PROJECT_RELNAME}
+
+#ARDOC_PROJECT_RELNAME=${ARDOC_PROJECT_RELNAME}_${relnum}
+#[[ "${relnum}" = "" ]] && ARDOC_PROJECT_RELNAME=${ARDOC_PROJECT_RELNAME_GEN}
+ARDOC_PROJECT_RELNUMB=${relnum}
+
+export ARDOC_PROJECT_RELNAME_GEN
+export ARDOC_PROJECT_RELNAME
+export ARDOC_PROJECT_RELNUMB
+
+## RELHOME is defined externally
+## ARDOC_PROJECT_HOME should not be used anymore   
+##export ARDOC_RELHOME=${ARDOC_PROJECT_HOME}/${ARDOC_PROJECT_RELNAME}
+
+### ANY REMOVAL in ARDOC_PROJECT_HOME disabled
+#if [ "$ARDOC_BUILD_FROM_SCRATCH" = "yes" ]; then
+#rm -rf ${ARDOC_PROJECT_HOME}/${ARDOC_PROJECT_RELNAME}
+#mkdir ${ARDOC_PROJECT_HOME}/${ARDOC_PROJECT_RELNAME}
+#fi
+ 
+[[ ! -d ${ARDOC_RELHOME} ]] && mkdir -p ${ARDOC_RELHOME}
+[[ ! -d ${ARDOC_DOCHOME}/ARDOC_area ]] && mkdir ${ARDOC_DOCHOME}/ARDOC_area
+[[ ! -d ${ARDOC_DOCHOME}/ARDOC_area/ARDOC_Log${ARDOC_SUFFIX} ]] && mkdir ${ARDOC_DOCHOME}/ARDOC_area/ARDOC_Log${ARDOC_SUFFIX}
+[[ ! -d ${ARDOC_DOCHOME}/ARDOC_area/ARDOC_TestLog${ARDOC_SUFFIX} ]] && mkdir ${ARDOC_DOCHOME}/ARDOC_area/ARDOC_TestLog${ARDOC_SUFFIX}
+
+export ARDOC_LOG=${ARDOC_DOCHOME}/ARDOC_area/ARDOC_Log${ARDOC_SUFFIX}/ardoc_general.loglog
+export ARDOC_TESTLOG=${ARDOC_DOCHOME}/ARDOC_area/ARDOC_TestLog${ARDOC_SUFFIX}/ardoc_test.loglog
+export ARDOC_CHECKOUTLOG=${ARDOC_DOCHOME}/ARDOC_area/ARDOC_Log${ARDOC_SUFFIX}/ardoc_checkout.loglog
+export ARDOC_BUILDLOG=${ARDOC_DOCHOME}/ARDOC_area/ARDOC_Log${ARDOC_SUFFIX}/ardoc_build.loglog
+export ARDOC_CONFBUILDLOG=${ARDOC_DOCHOME}/ARDOC_area/ARDOC_Log${ARDOC_SUFFIX}/ardoc_confbuild.loglog
+export ARDOC_INSTBUILDLOG=${ARDOC_DOCHOME}/ARDOC_area/ARDOC_Log${ARDOC_SUFFIX}/ardoc_instbuild.loglog
+
+if [ "$ARDOC_BUILD_FROM_SCRATCH" = "yes" -o "$ARDOC_LOG_SCRATCH" = "yes" ]; then
+rm -rf ${ARDOC_DOCHOME}/ARDOC_area/ARDOC_Log${ARDOC_SUFFIX}
+rm -rf ${ARDOC_DOCHOME}/ARDOC_area/ARDOC_TestLog${ARDOC_SUFFIX}
+mkdir ${ARDOC_DOCHOME}/ARDOC_area/ARDOC_Log${ARDOC_SUFFIX}
+mkdir ${ARDOC_DOCHOME}/ARDOC_area/ARDOC_TestLog${ARDOC_SUFFIX}
+if [ -f ${ARDOC_LOG} ]; then rm -f ${ARDOC_LOG}; fi; touch ${ARDOC_LOG}
+if [ -f ${ARDOC_TESTLOG} ]; then rm -f ${ARDOC_TESTLOG}; fi; touch ${ARDOC_TESTLOG}
+if [ -f ${ARDOC_CHECKOUTLOG} ]; then rm -f ${ARDOC_CHECKOUTLOG}; fi; touch ${ARDOC_CHECKOUTLOG}
+if [ -f ${ARDOC_BUILDLOG} ]; then rm -f ${ARDOC_BUILDLOG}; fi; touch ${ARDOC_BUILDLOG}
+if [ -f ${ARDOC_CONFBUILDLOG} ]; then rm -f ${ARDOC_CONFBUILDLOG}; fi; touch ${ARDOC_CONFBUILDLOG}
+if [ -f ${ARDOC_INSTBUILDLOG} ]; then rm -f ${ARDOC_INSTBUILDLOG}; fi; touch ${ARDOC_INSTBUILDLOG}
+fi
+                                                                   
+if [ "${ARDOC_DBFILE}" = "" ]; then
+export ARDOC_DBFILE="${ARDOC_WORK_AREA}/tags.db"
+if [ -f $ARDOC_DBFILE ]; then rm -f $ARDOC_DBFILE; fi
+touch $ARDOC_DBFILE
+[[ -f $ARDOC_COMMON_CONFIG_AREA/tags.db ]] && cat $ARDOC_COMMON_CONFIG_AREA/tags.db >> $ARDOC_DBFILE
+[[ -f $ARDOC_CONFIG_AREA/tags.db ]] && cat $ARDOC_CONFIG_AREA/tags.db >> $ARDOC_DBFILE
+fi
+if [ "${ARDOC_TEST_DBFILE}" = "" ]; then
+ARDOC_TEST_DBFILE="${ARDOC_WORK_AREA}/test.db"
+export ARDOC_TEST_DBFILE
+if [ -f $ARDOC_TEST_DBFILE ]; then rm -f $ARDOC_TEST_DBFILE; fi
+touch $ARDOC_TEST_DBFILE
+if [ -f $ARDOC_COMMON_CONFIG_AREA/test.db ]; then cat $ARDOC_COMMON_CONFIG_AREA/test.db >> $ARDOC_TEST_DBFILE; fi
+if [ -f $ARDOC_CONFIG_AREA/test.db ]; then cat $ARDOC_CONFIG_AREA/test.db >> $ARDOC_TEST_DBFILE; fi
+fi
+
+if [ "${ARDOC_DBFILE}" != "" ]; then
+dbase=`basename ${ARDOC_DBFILE}`
+ARDOC_DBFILE_GEN="${ARDOC_WORK_AREA}/${dbase}_gen" 
+export ARDOC_DBFILE_GEN
+fi
+
+if [ -f "${ARDOC_DBFILE}" ]; then
+dbase=`basename ${ARDOC_DBFILE}`
+ARDOC_DBFILE_MOD="${ARDOC_WORK_AREA}/${dbase}_mod"
+[[ -f "${ARDOC_DBFILE_MOD}" ]] && rm -f ${ARDOC_DBFILE_MOD}
+touch ${ARDOC_DBFILE_MOD}
+cat ${ARDOC_DBFILE} | while read pkg ver adr
+do
+if [ "$pkg" != "" ]; then
+printf "%-40s%-1s%-30s%-1s%-2s\n" $pkg " " $ver " 0 "  $adr >> ${ARDOC_DBFILE_MOD}
+fi
+done
+fi
+
+if [ "${ARDOC_TEST_DBFILE}" != "" ]; then
+dbase=`basename ${ARDOC_TEST_DBFILE}`
+ARDOC_TEST_DBFILE_GEN="${ARDOC_WORK_AREA}/${dbase}_gen"
+export ARDOC_TEST_DBFILE_GEN
+else
+ARDOC_TEST_DBFILE_GEN="${ARDOC_WORK_AREA}/atlas_test.db_gen"
+export ARDOC_TEST_DBFILE_GEN
+fi
+
+#WEBDIR default
+
+if [ "${ARDOC_WEBDIR}" = "" ]; then
+ARDOC_WEBDIR=${dir_ardochome}/${ARDOC_NIGHTLY_GROUP}WebArea/ardoc_web_area${ARDOC_SUFFIX}
+export ARDOC_WEBDIR
+fi
+[[ ! -d ${ARDOC_WEBDIR} ]] && mkdir -p ${ARDOC_WEBDIR}
+
+bwebdir2=`basename $ARDOC_WEBDIR`
+dwebdir=`dirname $ARDOC_WEBDIR`
+bwebdir1=`basename $dwebdir`
+ARDOC_WEBPAGE="$ARDOC_HTTP/$bwebdir1/$bwebdir2"
+export ARDOC_WEBPAGE
+
+if [ "${ARDOC_COMMON_WEBDIR}" != "" ]; then
+[[ ! -d ${ARDOC_COMMON_WEBDIR} ]] && mkdir -p ${ARDOC_COMMON_WEBDIR}
+bwebdir2=`basename $ARDOC_COMMON_WEBDIR`
+ARDOC_COMMON_WEBPAGE="$ARDOC_HTTP/$bwebdir2"
+export ARDOC_COMMON_WEBPAGE
+fi
+
+#### ARDOC_WEB_HOME ?????
+export ARDOC_WEB_HOME="$ARDOC_HTTP_BUILD"
+
+echo "------------------------------------------------------------" >> ${ARDOC_LOG}
+echo "   Starting ARDOC configuration" >> ${ARDOC_LOG}
+echo "------------------------------------------------------------" >> ${ARDOC_LOG}
+
+# (1) release build tool setup
+rm -f ${ARDOC_WORK_AREA}/cache_scan_result
+${ARDOC_HOME}/ardoc_cachescan.pl -d "RELEASE TOOL SETUP" ${caches}
+source ${ARDOC_WORK_AREA}/cache_scan_result
+[[ "$dir" = "" ]] && dir="."
+[[ "$command" = "source" ]] && export ARDOC_RELEASETOOLSETUP_COMMAND=${command}
+unset command
+export ARDOC_RELEASETOOLSETUP_DIR=${dir}
+unset dir
+
+rm -rf ${ARDOC_WORK_AREA}/ardoc_toolinit_gen
+${ARDOC_HOME}/ardoc_cachescan.pl -c "RELEASE TOOL SETUP" ${caches}
+cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
+${ARDOC_WORK_AREA}/ardoc_toolinit_gen
+
+# (2) checkout parameters
+rm -f ${ARDOC_WORK_AREA}/cache_scan_result
+${ARDOC_HOME}/ardoc_cachescan.pl -d "CHECKOUT" ${caches}
+source ${ARDOC_WORK_AREA}/cache_scan_result
+[[ "$shell" = "" ]] && shell="/bin/sh"
+export ARDOC_CHECKOUT_SHELL=${shell}
+unset shell
+
+rm -f ${ARDOC_WORK_AREA}/ardoc_checkout_gen
+${ARDOC_HOME}/ardoc_cachescan.pl -c "CHECKOUT" ${caches}
+cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
+${ARDOC_WORK_AREA}/ardoc_checkout_gen
+
+# (3) project setup
+rm -f ${ARDOC_WORK_AREA}/cache_scan_result
+${ARDOC_HOME}/ardoc_cachescan.pl -d "PROJECT SETUP" ${caches}
+source ${ARDOC_WORK_AREA}/cache_scan_result
+[[ "$dir" = "" ]] && dir="."
+export ARDOC_PROJECTSETUP_DIR=${dir}
+unset dir
+
+[[ "$command" = "source" ]] && export ARDOC_PROJECTSETUP_COMMAND=${command}
+unset command
+
+rm -f ${ARDOC_WORK_AREA}/ardoc_projectconf_gen
+${ARDOC_HOME}/ardoc_cachescan.pl -c "PROJECT SETUP" ${caches}
+cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
+${ARDOC_WORK_AREA}/ardoc_projectconf_gen
+
+# (4) build command
+rm -f ${ARDOC_WORK_AREA}/cache_scan_result
+${ARDOC_HOME}/ardoc_cachescan.pl -d "PROJECT BUILD" ${caches}
+source ${ARDOC_WORK_AREA}/cache_scan_result
+[[ "$dir" = "" ]] && dir="."
+export ARDOC_PROJECTBUILD_DIR=${dir}
+unset dir
+[[ "$shell" = "" ]] && shell="/bin/sh"
+export ARDOC_BUILD_SHELL=${shell}
+unset shell
+
+rm -f ${ARDOC_WORK_AREA}/ardoc_build_gen
+${ARDOC_HOME}/ardoc_cachescan.pl -c "PROJECT BUILD" ${caches}
+cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
+${ARDOC_WORK_AREA}/ardoc_build_gen
+
+# (5) error analysis
+rm -f ${ARDOC_WORK_AREA}/ardoc_errorhandler_gen
+${ARDOC_HOME}/ardoc_cachescan.pl -c "ERROR ANALYSIS" ${caches}
+cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
+${ARDOC_WORK_AREA}/ardoc_errorhandler_gen
+
+# (5a) parameters for web page
+rm -f ${ARDOC_WORK_AREA}/ardoc_webpage_gen
+${ARDOC_HOME}/ardoc_cachescan.pl -c "WEB PAGE" ${caches}
+cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
+${ARDOC_WORK_AREA}/ardoc_webpage_gen
+
+echo "------------------------------------------------------------" >> ${ARDOC_LOG}
+echo "   The following variables are determined at ARDOC configuration" >> ${ARDOC_LOG}
+env | grep ARDOC >>  ${ARDOC_LOG}
+echo $HOST >>  ${ARDOC_LOG}
+echo "--JENKINS env-----------------------------------------------" >> ${ARDOC_LOG}
+env | grep JENKINS >>  ${ARDOC_LOG}
+env | grep BUILD_ >>  ${ARDOC_LOG}
+echo "------------------------------------------------------------" >> ${ARDOC_LOG}
+
+# (end) -----------------------------
+

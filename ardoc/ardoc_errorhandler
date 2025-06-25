@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# ARDOC - NIghtly COntrol System
+# Author Alex Undrus <undrus@bnl.gov>
+# 
+# ----------------------------------------------------------
+# ardoc_errorhandler
+# ----------------------------------------------------------
+#
+jid="NONE"
+while [ $# -ne 0 ]; do
+    case $1 in
+         --jid) jid=$2; shift;;
+    esac
+    shift
+done
+
+DD=`date`
+echo "------------------------------------------------------------"
+echo "   Starting ARDOC error analysis $DD"
+echo "------------------------------------------------------------"
+prevdir=`pwd`
+
+export ARDOC_PROJECT_RELNAME_COPY=$ARDOC_PROJECT_RELNAME
+if [ ! -f $ARDOC_WORK_AREA/ardoc_loghandler_report ]; then touch $ARDOC_WORK_AREA/ardoc_loghandler_report; fi
+cd ${ARDOC_RELHOME}/${ARDOC_PROJECTBUILD_DIR}
+source ${ARDOC_WORK_AREA}/ardoc_errorhandler_gen; stat=$?
+if [ "$stat" -ne 0 ]; then exit ${stat}; fi
+cd ${ARDOC_RELHOME}/${ARDOC_PROJECTBUILD_DIR}
+
+export ARDOC_MAIL="no"
+export ARDOC_MAIL_UNIT_TESTS="no"
+export ARDOC_MAIL_INT_TESTS="no"
+export ARDOC_MAIL_QA_TESTS="no"
+
+sffx="_${ARDOC_PROJECT_RELNUMB_COPY}"
+if [ "${ARDOC_PROJECT_RELNUMB_COPY}" = "" ]; then sffx=""; fi
+
+${ARDOC_HOME}/ardoc_errorhandler.pl; stat=$?
+
+cd ${prevdir}
+exit $stat
+
+
+
+
+
+
+

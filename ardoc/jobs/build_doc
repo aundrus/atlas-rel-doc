@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# NICOS - NIghtly COntrol System
+# ARDOC - NIghtly COntrol System
 # Author Alex Undrus <undrus@bnl.gov>
 #
 # ----------------------------------------------------------
@@ -12,17 +12,17 @@ function show_help() {
     echo "-n <nightly branch name> [other options]"
 }
  
-export NICOS_HOME="/afs/cern.ch/atlas/software/dist/ci/nicos_doc_builder"
-export NICOS_EPOCH=`date +%s.%N`
-export NICOS_MASTER_EPOCH=$NICOS_EPOCH
-dateString=`date +%Y-%m-%d-%H-%M -d@${NICOS_EPOCH}`
+export ARDOC_HOME="/afs/cern.ch/atlas/software/dist/ci/ardoc_doc_builder"
+export ARDOC_EPOCH=`date +%s.%N`
+export ARDOC_MASTER_EPOCH=$ARDOC_EPOCH
+dateString=`date +%Y-%m-%d-%H-%M -d@${ARDOC_EPOCH}`
 nightlyName="21.0.X-CI"
 release="MR-${dateString}"
 arch="x86_64-slc6-gcc49-opt"
-pathToSource=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_nicos_test/source
-pathToBuild=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_nicos_test/build
-startTime=$NICOS_EPOCH
-endTime=$NICOS_EPOCH
+pathToSource=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_ardoc_test/source
+pathToBuild=/afs/cern.ch/atlas/software/builds/nightlies/trials/git_build_ardoc_test/build
+startTime=$ARDOC_EPOCH
+endTime=$ARDOC_EPOCH
 comname=`basename $0`
 if [ "$comname" = "build_doc" ]; then
 exitcomtool="exit"
@@ -40,45 +40,45 @@ fi
 #    shift
 #done
 
-export NICOS_NIGHTLY_NAME=$nightlyName
-export NICOS_NIGHTLY_GROUP="CI"
-export NICOS_ARCH=$arch
-export NICOS_RELHOME=$pathToBuild
-## just in case: NICOS_PROJECT_HOME should not be used anymore...
-export NICOS_PROJECT_HOME=$NICOS_RELHOME
-export NICOS_SOURCEHOME=$pathToSource
-export NICOS_STARTTIME=$startTime
-export NICOS_ENDTIME=$endTime
-export NICOS_COMMON_CONFIG_AREA="/afs/cern.ch/atlas/software/dist/ci/nicos_config_area_doc"
-export NICOS_CONFIG_AREA=""
-export NICOS_PROJECT_NAME="Athena"
-export NICOS_PROJECT_RELNAME=$release
-export NICOS_BUILD_FROM_SCRATCH="yes"
-export NICOS_LOG_SCRATCH="yes"
-export NICOS_HTTP=http://cern.ch/atlas-computing/links/distDirectory/ci
-export NICOS_HTTP_BUILD=$NICOS_HTTP
+export ARDOC_NIGHTLY_NAME=$nightlyName
+export ARDOC_NIGHTLY_GROUP="CI"
+export ARDOC_ARCH=$arch
+export ARDOC_RELHOME=$pathToBuild
+## just in case: ARDOC_PROJECT_HOME should not be used anymore...
+export ARDOC_PROJECT_HOME=$ARDOC_RELHOME
+export ARDOC_SOURCEHOME=$pathToSource
+export ARDOC_STARTTIME=$startTime
+export ARDOC_ENDTIME=$endTime
+export ARDOC_COMMON_CONFIG_AREA="/afs/cern.ch/atlas/software/dist/ci/ardoc_config_area_doc"
+export ARDOC_CONFIG_AREA=""
+export ARDOC_PROJECT_NAME="Athena"
+export ARDOC_PROJECT_RELNAME=$release
+export ARDOC_BUILD_FROM_SCRATCH="yes"
+export ARDOC_LOG_SCRATCH="yes"
+export ARDOC_HTTP=http://cern.ch/atlas-computing/links/distDirectory/ci
+export ARDOC_HTTP_BUILD=$ARDOC_HTTP
 #FOR ORACLE SCRIPTS COMPATIBILITY
-export NICOS_GEN_CONFIG_AREA=$NICOS_COMMON_CONFIG_AREA
-export NICOS_ATLAS_RELEASE='21.0.0'
-export NICOS_ATLAS_ALT_RELEASE='21.0.0'
-export NICOS_ORACLE_SCHEMA="ATLAS_NICOS"
-export NICOS_NIGHTLY_ROLE='master'
+export ARDOC_GEN_CONFIG_AREA=$ARDOC_COMMON_CONFIG_AREA
+export ARDOC_ATLAS_RELEASE='21.0.0'
+export ARDOC_ATLAS_ALT_RELEASE='21.0.0'
+export ARDOC_ORACLE_SCHEMA="ATLAS_ARDOC"
+export ARDOC_NIGHTLY_ROLE='master'
 # END FOR ORACLE SCRIPTS COMPATIBILITY
 
-export NICOS_SUFFIX_PREPEND=` echo ${NICOS_NIGHTLY_NAME} | sed 's/[^a-zA-Z0-9_]//g'`
-suff1=`/bin/sh -c :;(export NICOS_PROJECT_NAME="PRJ"; unset NICOS_SUFFIX; ${NICOS_HOME}/nicos_project_suffix_creator.pl)`
-suff2=`/bin/sh -c :;(export NICOS_PROJECT_NAME="$proj"; unset NICOS_SUFFIX; ${NICOS_HOME}/nicos_project_suffix_creator.pl)`
+export ARDOC_SUFFIX_PREPEND=` echo ${ARDOC_NIGHTLY_NAME} | sed 's/[^a-zA-Z0-9_]//g'`
+suff1=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="PRJ"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
+suff2=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="$proj"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
 suff=`echo $suff1 | sed 's/PRJ//'`
 
-echo "nicos_job_doc: INFO: NICOS preliminary env:"
-env | grep NICOS
-echo "=============== end NICOS preliminary env"
+echo "ardoc_job_doc: INFO: ARDOC preliminary env:"
+env | grep ARDOC
+echo "=============== end ARDOC preliminary env"
 
 if [ "$exitcomtool" = "exit" ]; then
-${NICOS_HOME}/nicos_job_doc
+${ARDOC_HOME}/ardoc_job_doc
 else
-export NICOS_BUILD_FROM_SCRATCH="no"
-export NICOS_LOG_SCRATCH="no"
+export ARDOC_BUILD_FROM_SCRATCH="no"
+export ARDOC_LOG_SCRATCH="no"
 fi
 
 ${exitcomtool} 0
