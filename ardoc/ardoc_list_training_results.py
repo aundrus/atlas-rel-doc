@@ -57,14 +57,14 @@ try:
     connection.ping()
 except cx_Oracle.DatabaseError as exception:
     error, = exception.args
-    logging.info("ardoc_select_domain_for_training.py: Database connection error: '%s' '%s' '%s'" % (error.code, error.offset, error.message))
+    logging.info("ardoc_select_ATLASdomain_for_training.py: Database connection error: '%s' '%s' '%s'" % (error.code, error.offset, error.message))
 else:
-    logging.info("ardoc_select_domain_for_training.py: Connection is alive!")
+    logging.info("ardoc_select_ATLASdomain_for_training.py: Connection is alive!")
 cursor.execute("ALTER SESSION SET current_schema = "+oracle_schema)    
 
 i1=0
-l_days=[]; l_branch=[];  l_project=[]; l_ldomaindb=[]
-l_domainset=[];
+l_days=[]; l_branch=[];  l_project=[]; l_lATLASdomaindb=[]
+l_ATLASdomainset=[];
 for project_select in projects:
     for branch_select in branches:
         i_jid=0
@@ -87,12 +87,12 @@ SELECT did,dcont,projname,tdstamp,to_char(jid) FROM DOMAINS natural join TDOMRES
 natural join jobs \
 where jid > :jid and (updflag is NULL or updflag = 0) and projname = :projname \
 and ( gitbr = :gitbr1 or gitbr = :gitbr2 ) order by tdstamp desc"""
-            logging.info("ardoc_select_domain_for_training.py: cmnd: '%s' '%s'" % (cmnd,{'jid':jid_select,'gitbr1':gitbr1,'gitbr2':gitbr2,'projname':project_select}))
+            logging.info("ardoc_select_ATLASdomain_for_training.py: cmnd: '%s' '%s'" % (cmnd,{'jid':jid_select,'gitbr1':gitbr1,'gitbr2':gitbr2,'projname':project_select}))
             cursor.execute(cmnd,{'jid':jid_select,'gitbr1':gitbr1,'gitbr2':gitbr2,'projname':project_select})
             result=cursor.fetchall()
             lresult=len(result)
             i9=0
-            domaindb_set=set()
+            ATLASdomaindb_set=set()
             for row in result:
                 i9+=1
                 did9=row[0]
@@ -101,20 +101,20 @@ and ( gitbr = :gitbr1 or gitbr = :gitbr2 ) order by tdstamp desc"""
                 tsta9=row[3]
                 jid9=row[4]
 #                print(jid9,cont9)
-                domaindb_set.add(cont9) 
-            ldomaindb=len(domaindb_set)
-#            print(domaindb_set)
-            logging.info("ardoc_list_training: Info: number of domains probed: %s, total N tests %s" % (ldomaindb, lresult))
-            l_domainset.append(domaindb_set) 
-            l_ldomaindb.append(ldomaindb)
+                ATLASdomaindb_set.add(cont9) 
+            lATLASdomaindb=len(ATLASdomaindb_set)
+#            print(ATLASdomaindb_set)
+            logging.info("ardoc_list_training: Info: number of ATLASdomains probed: %s, total N tests %s" % (lATLASdomaindb, lresult))
+            l_ATLASdomainset.append(ATLASdomaindb_set) 
+            l_lATLASdomaindb.append(lATLASdomaindb)
 cursor.close()
 connection.commit()
 connection.close()
 s_mainAthena_30=set(); s_main23_30=set()
 for i in range(0,i1):
-    logging.info("ardoc_list_training: %s * %s * %s * %s --- %s " % (str(i),l_project[i], l_branch[i], str(l_days[i]), l_ldomaindb[i]))
-    if l_days[i] == 30 and l_branch[i] == 'main' and l_project[i] == 'Athena' : s_mainAthena_30=l_domainset[i]
-    if l_days[i] == 30 and l_branch[i] == '23.0' and l_project[i] == 'Athena' : s_main23_30=l_domainset[i]
+    logging.info("ardoc_list_training: %s * %s * %s * %s --- %s " % (str(i),l_project[i], l_branch[i], str(l_days[i]), l_lATLASdomaindb[i]))
+    if l_days[i] == 30 and l_branch[i] == 'main' and l_project[i] == 'Athena' : s_mainAthena_30=l_ATLASdomainset[i]
+    if l_days[i] == 30 and l_branch[i] == '23.0' and l_project[i] == 'Athena' : s_main23_30=l_ATLASdomainset[i]
 
 #print(list(s_mainAthena_30))
 #print("==================")
