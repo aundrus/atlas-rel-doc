@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# ARDOC - NIghtly COntrol System
+# NICOS - NIghtly COntrol System
 # Author Alex Undrus <undrus@bnl.gov>
 # 
 # ----------------------------------------------------------
-# ardoc_webpage
+# nicos_webpage
 # ----------------------------------------------------------
 #
 function rsync_loop () {
@@ -15,11 +15,11 @@ function rsync_loop () {
     r_code_prev=0
     while [ "$a" -le $LIMIT ]
     do
-        echo "ardoc_webpage: info: running iteration ${a} for rsync ${arg}" $(date)
+        echo "nicos_webpage: info: running iteration ${a} for rsync ${arg}" $(date)
         ((a++))
         rsync ${arg}; r_code=$?
         if [ "${r_code}" -eq 0 ]; then
-            echo "ardoc_webpage: info: successful iteration $((a-1)) for rsync ${arg}" $(date)
+            echo "nicos_webpage: info: successful iteration $((a-1)) for rsync ${arg}" $(date)
             if [ "${a}" -gt 2 ]; then
 		mail -s "CI EOS log copy: $((a-1)) iterations on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target: ${a} iterations, previous error code ${r_code_prev}, on $(date)"
             fi
@@ -27,11 +27,11 @@ function rsync_loop () {
 	else
 	    r_code_prev="${r_code}"
         fi
-        echo "ardoc_webpage: warning: rsync error code (${arg})" $(date)
-        echo "ardoc_webpage: info: sleeping $((a-1))"
+        echo "nicos_webpage: warning: rsync error code (${arg})" $(date)
+        echo "nicos_webpage: info: sleeping $((a-1))"
         sleep $quant
         if [ "$a" -gt "$LIMIT" ]; then
-            echo "ardoc_webpage: persistent error ${r_code} for rsync ${arg}" $(date)
+            echo "nicos_webpage: persistent error ${r_code} for rsync ${arg}" $(date)
             break
         fi
     done
@@ -55,36 +55,36 @@ while [ $# -ne 0 ]; do
 done
 
 echo "------------------------------------------------------------"
-echo "   Starting ARDOC web pages generation"
+echo "   Starting NICOS web pages generation"
 echo "------------------------------------------------------------"
 ####
-source ${ARDOC_WORK_AREA}/ardoc_webpage_gen
+source ${NICOS_WORK_AREA}/nicos_webpage_gen
 ####
 
-array_proj=(${ARDOC_PROJECT_ARRAY})
+array_proj=(${NICOS_PROJECT_ARRAY})
 el_proj=${#array_proj[@]}
 last_el_proj=$((${el_proj} - 1))
 sign_first=0
 sign_last=0
-if [ "${array_proj[0]}" = "" -o "${array_proj[0]}" = "$ARDOC_PROJECT_NAME" ]; then
+if [ "${array_proj[0]}" = "" -o "${array_proj[0]}" = "$NICOS_PROJECT_NAME" ]; then
 sign_first=1
 fi
 
 if [ "${last_el_proj}" -lt 0 ]; then
 sign_last=1
-elif [ "${array_proj[${last_el_proj}]}" = "" -o "${array_proj[${last_el_proj}]}" = "$ARDOC_PROJECT_NAME" ]; then
+elif [ "${array_proj[${last_el_proj}]}" = "" -o "${array_proj[${last_el_proj}]}" = "$NICOS_PROJECT_NAME" ]; then
 sign_last=1
 fi
 
 if [ "$phase" -eq 1 ]; then
 ##
 ##CLEAN
-if [ -f $ARDOC_WORK_AREA/ardoc_prepage ]; then rm -f $ARDOC_WORK_AREA/ardoc_prepage; fi
-if [ -f $ARDOC_WORK_AREA/ardoc_testprepage ]; then rm -f $ARDOC_WORK_AREA/ardoc_testprepage; fi
-if [ -f $ARDOC_WORK_AREA/ardoc_loghandler_report ]; then rm -f $ARDOC_WORK_AREA/ardoc_loghandler_report; fi
-touch $ARDOC_WORK_AREA/ardoc_prepage
-touch $ARDOC_WORK_AREA/ardoc_testprepage
-touch $ARDOC_WORK_AREA/ardoc_loghandler_report
+if [ -f $NICOS_WORK_AREA/nicos_prepage ]; then rm -f $NICOS_WORK_AREA/nicos_prepage; fi
+if [ -f $NICOS_WORK_AREA/nicos_testprepage ]; then rm -f $NICOS_WORK_AREA/nicos_testprepage; fi
+if [ -f $NICOS_WORK_AREA/nicos_loghandler_report ]; then rm -f $NICOS_WORK_AREA/nicos_loghandler_report; fi
+touch $NICOS_WORK_AREA/nicos_prepage
+touch $NICOS_WORK_AREA/nicos_testprepage
+touch $NICOS_WORK_AREA/nicos_loghandler_report
 ##
 else # if [ "$phase" -eq 1 ]; then
 ##
@@ -103,73 +103,105 @@ else
     echo "INFO: /usr/sbin is appended to ${PATH}"
 fi
 #    
-export ARDOC_PROJECT_RELNAME_COPY=$ARDOC_PROJECT_RELNAME
-${ARDOC_HOME}/ardoc_lock --lock --dir ${ARDOC_WEBDIR}
-${ARDOC_HOME}/ardoc_errorhandler --jid $jid
-[[ "$statichtml" -eq 1 ]] && ${ARDOC_HOME}/ardoc_pagemaker.pl
-${ARDOC_HOME}/ardoc_lock --unlock --dir ${ARDOC_WEBDIR}
-if [ "$ARDOC_WEB_ACCESS_DIR_ALT" != "" ]; then
+export NICOS_PROJECT_RELNAME_COPY=$NICOS_PROJECT_RELNAME
+${NICOS_HOME}/nicos_lock --lock --dir ${NICOS_WEBDIR}
+${NICOS_HOME}/nicos_errorhandler --jid $jid
+[[ "$statichtml" -eq 1 ]] && ${NICOS_HOME}/nicos_pagemaker.pl
+${NICOS_HOME}/nicos_lock --unlock --dir ${NICOS_WEBDIR}
+if [ "$NICOS_WEB_ACCESS_DIR_ALT" != "" ]; then
   hname=$(hostname | cut -d. -f1)
-  copy_origin="$ARDOC_WEBDIR"
-  copy_target="$ARDOC_WEB_ACCESS_DIR_ALT/${ARDOC_NIGHTLY_GROUP}WebArea/ardoc_web_area${ARDOC_SUFFIX}"
+  copy_origin="$NICOS_WEBDIR"
+  copy_target="$NICOS_WEB_ACCESS_DIR_ALT/${NICOS_NIGHTLY_GROUP}WebArea/nicos_web_area${NICOS_SUFFIX}"
   [[ ! -d $copy_target ]] && mkdir -p $copy_target
-  rsync_params="-uvrlpt $copy_origin/ $copy_target"
-#  echo "ardoc_webpage: Info: running alt rsync -uvrlpt $copy_origin/ $copy_target" $(date)
-  epoch_start=$(date +%s)
-  rsync_loop "${rsync_params}"; st_rsync=$?
-#  rsync -uvrlpt $copy_origin/ $copy_target; st_rsync=$?
-  epoch_end=$(date +%s)
-  epoch_diff=$((epoch_end - epoch_start))
+  buildlogarea_target="${copy_target}/NICOS_Log_${NICOS_PROJECT_RELNAME}"
+  testlogarea_target="${copy_target}/NICOS_TestLog_${NICOS_PROJECT_RELNAME}"
+  st_sq02=0
+  for logarea in "${buildlogarea_target}" "${testlogarea_target}"
+  do
+    echo "nicos_webpage: Info: CREATING squashgs logarea: ${logarea}"
+    if [ -L ${logarea} ]; then
+        echo "nicos_webpage: Info: symbolic link ${logarea} exists, removing"
+        logarea_rl=$(readlink "${logarea}")
+        if [[ ${logarea_rl} =~ /eos/squash ]]; then
+            output_squash_rm=$(eos squash rm "${logarea}" 2>&1)
+            echo "nicos_webpage: SquashFS volume DELETED: ${logarea}"
+            echo "nicos_webpage: eos squash rm output: ${output_squash_rm}"
+        else
+            rm -rf ${logarea}
+        fi
+    elif [ -d ${logarea} ]; then
+        echo "nicos_webpage: Info: directory ${logarea} exists, removing"
+        rm -rf ${logarea}
+    elif [ -f ${logarea} ]; then
+        echo "nicos_webpage: Info: file ${logarea} exists, removing"
+        rm -f ${logarea}
+    fi
+    echo "nicos_webpage: Info: running eos squash new ${logarea}"
+    eos squash new ${logarea}; st_sq_new=$?
+    echo "nicos_webpage: Info: eos squash new returned ${st_sq_new}"
+    [[ "${st_sq_new}" -ne 0 ]] && st_sq02=1
+  done
+#  rsync_params="-uvrlpt $copy_origin/ $copy_target"
+##  echo "nicos_webpage: Info: running alt rsync -uvrlpt $copy_origin/ $copy_target" $(date)
+#  epoch_start=$(date +%s)
+#  rsync_loop "${rsync_params}"; st_rsync=$?
+#  epoch_end=$(date +%s)
+#  epoch_diff=$((epoch_end - epoch_start))
   fname=$copy_target/copy_time_stamp.txt
   strng="COPY ON ${hname}, process $$"
   echo ${strng} > ${fname}; st_eos21=$?
   grep -q "${strng}" ${fname}; st_eos22=$?
-  if [ "${st_rsync}" -eq 0 -a "${st_eos21}" -eq 0 -a "${st_eos22}" -eq 0 ]; then
-    echo "INFO: EOS COPY QUALITY CHECK PASSED"
-#    mail -s "CI EOS log copy success on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s,success on $(date)" 
-  else
-    echo "WARNING: EOS COPY QUALITY CHECK FAILED: rsync status ${st_rsync}, small file write/read: (${fname} ${st_eos21} ${st_eos22})"
-    mail -s "CI EOS log copy failure on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s, error codes ${st_rsync} ${st_eos21} ${st_eos22} on $(date)"  
-  fi
-  cp ${ARDOC_HOME}/index_directory_list.php ${copy_target}/index.php
-  echo "ardoc_webpage: Info: END running alt rsync -uvrlpt $copy_origin/ $copy_target ${st_rsync} ${st_eos21} ${st_eos22} runtime ${epoch_diff} s" $(date)
-  buildlogarea="${copy_target}/ARDOC_Log_${ARDOC_PROJECT_RELNAME_COPY}"
-  testlogarea="${copy_target}/ARDOC_TestLog_${ARDOC_PROJECT_RELNAME_COPY}"
-  for logarea in "${buildlogarea}" "${testlogarea}"
+#  if [ "${st_rsync}" -eq 0 -a "${st_eos21}" -eq 0 -a "${st_eos22}" -eq 0 ]; then
+#    echo "INFO: EOS COPY QUALITY CHECK PASSED"
+##    mail -s "CI EOS log copy success on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s,success on $(date)" 
+#  else
+#    echo "WARNING: EOS COPY QUALITY CHECK FAILED: rsync status ${st_rsync}, small file write/read: (${fname} ${st_eos21} ${st_eos22})"
+#    mail -s "CI EOS log copy failure on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s, error codes ${st_rsync} ${st_eos21} ${st_eos22} on $(date)"  
+#  fi
+# MOVED DOWNSTREAM  cp ${NICOS_HOME}/index_directory_list.php ${copy_target}/index.php
+#  echo "nicos_webpage: Info: END running alt rsync -uvrlpt $copy_origin/ $copy_target ${st_rsync} ${st_eos21} ${st_eos22} runtime ${epoch_diff} s" $(date)
+  for logarea in "${buildlogarea_target}" "${testlogarea_target}"
   do		 
-    echo "ardoc_webpage: Info: STARTING filling logarea: ${logarea}"
-    if [ -d ${logarea} ]; then
-      echo "ardoc_webpage: Info: running mv ${logarea} ${logarea}_tmp" 
-      mv ${logarea} ${logarea}_tmp; st_sq01=$?
-      echo "ardoc_webpage: Info: running eos squash new ${logarea}"
-      eos squash new ${logarea}; st_sq02=$?
-      echo "ardoc_webpage: Info: running rsync -uvrlpt ${logarea}_tmp/ ${logarea}"
-      rsync_params="-uvrlpt ${logarea}_tmp/ ${logarea}"; st_sq03=$?
-      rsync_loop "${rsync_params}"; st_sq03=$?
-      echo "ardoc_webpage: Info: running eos squash pack ${logarea}"
-      eos squash pack ${logarea}; st_sq04=$?
-      st_sqsum=0
-      [[ "${st_sq01}" != 0 || "${st_sq02}" != 0 || "${st_sq03}" != 0 || "${st_sq04}" != 0 ]] && st_sqsum=1 
-      if [ "${st_sqsum}" -eq 0 ]; then
-         echo "INFO: SquashFS archive was successfully created on $(date)"
-#         mail -s "SquashFS archive was successfully created on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $logarea SquashFS archive success on $(date)"
-         echo "INFO: removing ${logarea}_tmp"
-         rm -rf ${logarea}_tmp 
-      else
-         echo "WARNING: SquashFS archive creation failed on $(date), error codes ${st_sq01}, ${st_sq02}, ${st_sq03}, ${st_sq04}"
-         mail -s "SquashFS archive creation failed on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $logarea, SquashFS error codes ${st_sq01}, ${st_sq02}, ${st_sq03}, ${st_sq04} on $(date)"
-      fi 
+    base_logarea=`basename ${logarea}`
+    origin_area=${copy_origin}/${base_logarea}
+    rsync_params="--delete -uvrlpt ${origin_area}/ $logarea"
+    epoch_start=$(date +%s)
+    rsync_loop "${rsync_params}"; st_rsync=$?                                                                                                                                                                                         epoch_end=$(date +%s)
+    epoch_diff=$((epoch_end - epoch_start))
+    if [ "${st_rsync}" -eq 0 -a "${st_eos21}" -eq 0 -a "${st_eos22}" -eq 0 ]; then
+        echo "nicos_webpage: Info: EOS COPY QUALITY CHECK PASSED, $origin_area to $logarea copytime ${epoch_diff} s"
+        ##mail -s "Nightly EOS log copy success on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s,success on $(date)"                                   
+    else
+        echo "nicos_webpage: Warning: EOS COPY QUALITY CHECK FAILED: rsync status ${st_rsync}, small file write/read: (${fname} ${st_eos21} ${st_eos22})"
+	echo "nicos_webpage: Warning: $origin_area to $logarea copytime ${epoch_diff} s"
+        mail -s "Nightly EOS log copy failure on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s, error codes ${st_rsync} ${st_eos21} ${st_eos22} on $(d\
+ate)"
     fi
-    echo "ardoc_webpage: Info: END filling logarea: ${logarea}"
+    echo "nicos_webpage: Info: STARTING squashing logarea: ${logarea}"
+    [[ -d ${logarea} ]] && st_sq01=0 || st_sq01=1
+    echo "nicos_webpage: Info: ls ${logarea}"
+    echo "nicos_webpage: Info: running eos squash pack ${logarea}"
+    eos squash pack ${logarea}; st_sq03=$?    st_sqsum=0
+    [[ "${st_sq01}" != 0 || "${st_sq02}" != 0 || "${st_sq03}" != 0 ]] && st_sqsum=1
+    if [ "${st_sqsum}" -eq 0 ]; then
+       echo "INFO: SquashFS archive was successfully created on $(date)"
+#       mail -s "SquashFS archive was successfully created on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $logarea SquashFS archive success on $(date)"                                 
+    else
+       echo "WARNING: SquashFS archive creation failed on $(date), error codes ${st_sq01}, ${st_sq02}, ${st_sq03}"
+       mail -s "SquashFS archive creation failed on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $logarea, SquashFS error codes ${st_sq01}, ${st_sq02}, ${st_sq03} on $(date\            
+)"
+    fi
+    echo "nicos_webpage: Info: END squashing logarea: ${logarea}"
   done
+  cp ${NICOS_HOME}/index_directory_list.php ${copy_target}/index.php
 fi
-if [ "$ARDOC_WEB_ACCESS_DIR" != "" ]; then
-  copy_origin="$ARDOC_WEBDIR"
-  copy_target="$ARDOC_WEB_ACCESS_DIR/${ARDOC_NIGHTLY_GROUP}WebArea/ardoc_web_area${ARDOC_SUFFIX}" 
+if [ "$NICOS_WEB_ACCESS_DIR" != "" ]; then
+  copy_origin="$NICOS_WEBDIR"
+  copy_target="$NICOS_WEB_ACCESS_DIR/${NICOS_NIGHTLY_GROUP}WebArea/nicos_web_area${NICOS_SUFFIX}" 
   [[ ! -d $copy_target ]] && mkdir -p $copy_target
-  echo "ardoc_webpage: Info: running rsync -uvrlpt $copy_origin/ $copy_target" $(date)
+  echo "nicos_webpage: Info: running rsync -uvrlpt $copy_origin/ $copy_target" $(date)
   rsync -uvrlpt $copy_origin/ $copy_target
-  echo "ardoc_webpage: Info: END running rsync -uvrlpt $copy_origin/ $copy_target" $(date)
+  echo "nicos_webpage: Info: END running rsync -uvrlpt $copy_origin/ $copy_target" $(date)
 fi
 
 ##
