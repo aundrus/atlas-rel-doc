@@ -105,16 +105,16 @@ if [ "${stage}" = "build" -o "${stage}" = "buildandtest" ]; then
 #  $ARDOC_HOME/ardoc_db_access -b -s "BUILD" >> ${genlogdir}/ardoc_general.logora 2>&1
 #  $ARDOC_HOME/ardoc_db_access -e -s "BUILD" >> ${genlogdir}/ardoc_general.logora 2>&1
   echo "ardoc_post_results: START build loghandler"
-  $ARDOC_HOME/ardoc_cmake_loghandler.pl >> ${ARDOC_LOG} 2>&1
+  $ARDOC_HOME/ardoc_cmake_loghandler.py >> ${ARDOC_LOG} 2>&1
   echo "ardoc_post_results: END build loghandler"
-  $ARDOC_HOME/ardoc_cmake_loghandler_2ndloop.pl -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1 
+  $ARDOC_HOME/ardoc_cmake_loghandler_2ndloop.py -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1 
   echo "ardoc_post_results: END build 2nd loop loghandler"
 elif [ "${stage}" = "test" -o "${stage}" = "buildandtest" ]; then
   $ARDOC_HOME/ardoc_db_access -b -s "INT" >> ${genlogdir}/ardoc_general.logora 2>&1
   $ARDOC_HOME/ardoc_db_access -e -s "INT" >> ${genlogdir}/ardoc_general.logora 2>&1
   echo "ardoc_post_results: START test loghandler"
   echo "ardoc_post_results: START test loghandler" >> ${ARDOC_LOG}
-  $ARDOC_HOME/ardoc_cmake_loghandler.pl -t >> ${ARDOC_LOG} 2>&1
+  $ARDOC_HOME/ardoc_cmake_loghandler.py -t >> ${ARDOC_LOG} 2>&1
   echo "ardoc_post_results: END test loghandler" >> ${ARDOC_LOG}
   echo "ardoc_post_results: START adding ctest results"
   echo "ardoc_post_results: START adding ctest results" >> ${ARDOC_LOG} 

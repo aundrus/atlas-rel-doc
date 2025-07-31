@@ -58,7 +58,7 @@ while [ "$a" -le $LIMIT ]
 do
 let "a+=1"
 
-df=$(${ARDOC_HOME}/ardoc_mtime_diff.pl $lfl)
+df=$(${ARDOC_HOME}/ardoc_mtime_diff.py $lfl)
 if [ "$df" -gt 3 ]; then
 unm=`uname`
 if [ "$unm" = "Darwin" ]; then

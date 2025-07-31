@@ -35,7 +35,7 @@ echo "ardoc_errorhandler: environment START"
 printenv | grep ARDOC_
 echo "ardoc_errorhandler: environment END"
 
-${ARDOC_HOME}/ardoc_errorhandler.pl; stat=$?
+${ARDOC_HOME}/ardoc_errorhandler.py; stat=$?
 
 cd ${prevdir}
 exit $stat
