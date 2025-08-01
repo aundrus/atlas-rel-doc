@@ -34,7 +34,7 @@ mkdir -p ${ARDOC_WORK_AREA}; stat=$?
 fi
 
 echo "ardoc_config: cleaning work top area $dir_ardochome/ardoc_work_toparea (retention 20 days)"
-${ARDOC_HOME}/ardoc_cleaner.py $dir_ardochome/ardoc_work_toparea 20
+python3 ${ARDOC_HOME}/ardoc_cleaner.py $dir_ardochome/ardoc_work_toparea 20
 
 cache=""
 gen_cache=""
@@ -50,7 +50,7 @@ rm -f ${ARDOC_WORK_AREA}/cache_scan_result_gen
 [[ "${gen_cache}" != "" ]] &&  caches=" -f ${gen_cache}"
 [[ "${cache}" !=	"" ]] && caches="${caches} -f ${cache}"
 # processing options in the tag
-${ARDOC_HOME}/ardoc_cachescan.py -d "PROJECT SETTINGS" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -d "PROJECT SETTINGS" ${caches}
 source ${ARDOC_WORK_AREA}/cache_scan_result
 #
 cat ${ARDOC_WORK_AREA}/cache_scan_result > ${ARDOC_WORK_AREA}/cache_scan_result_saved
@@ -58,17 +58,17 @@ rm -f ${ARDOC_WORK_AREA}/cache_scan_result
 # processing options under the tag
 touch ${ARDOC_WORK_AREA}/cache_scan_result_gen
 if [ "${gen_cache}" != "" ]; then
-${ARDOC_HOME}/ardoc_cachescan.py -c "PROJECT SETTINGS" -f ${gen_cache}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "PROJECT SETTINGS" -f ${gen_cache}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> ${ARDOC_WORK_AREA}/cache_scan_result_gen
 fi
 rm -f ${ARDOC_WORK_AREA}/cache_scan_result
 #
-${ARDOC_HOME}/ardoc_cachescan.py -c "PROJECT SETTINGS" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "PROJECT SETTINGS" ${caches}
 #
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> ${ARDOC_WORK_AREA}/cache_scan_result_saved
 
 #CALCULATING ARDOC_SUFFIX
-ARDOC_SUFFIX=`/bin/sh -c :;(unset ARDOC_SUFFIX; source ${ARDOC_WORK_AREA}/cache_scan_result > /dev/null 2>&1; ${ARDOC_HOME}/ardoc_project_suffix_creator.py)`
+ARDOC_SUFFIX=`/bin/sh -c :;(unset ARDOC_SUFFIX; source ${ARDOC_WORK_AREA}/cache_scan_result > /dev/null 2>&1; python3 ${ARDOC_HOME}/ardoc_project_suffix_creator.py)`
 echo "ardoc_config: ardoc_suffix calculated: $ARDOC_SUFFIX" 
 [[ "$ARDOC_SUFFIX" = "" ]] && "ardoc_config: Error: ARDOC_SUFFIX is empty" &&  return 1
 export ARDOC_SUFFIX
@@ -139,13 +139,13 @@ echo "------------------------------------------------------------" >> ${ARDOC_L
 
 # (1) error analysis
 rm -f ${ARDOC_WORK_AREA}/ardoc_errorhandler_gen
-${ARDOC_HOME}/ardoc_cachescan.py -c "ERROR ANALYSIS" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "ERROR ANALYSIS" ${caches}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
 ${ARDOC_WORK_AREA}/ardoc_errorhandler_gen
 
 # (2) parameters for web page
 rm -f ${ARDOC_WORK_AREA}/ardoc_webpage_gen
-${ARDOC_HOME}/ardoc_cachescan.py -c "WEB PAGE" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "WEB PAGE" ${caches}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
 ${ARDOC_WORK_AREA}/ardoc_webpage_gen
 
