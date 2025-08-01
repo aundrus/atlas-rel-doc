@@ -39,7 +39,7 @@ def main():
         path = os.path.join(area, f)
         try:
             # For ardoc_cleaner_lstat, we use lstat which does not follow symlinks
-            mtime = os.path.lstat(path).st_mtime
+            mtime = os.lstat(path).st_mtime
             files_with_mtime.append((path, mtime))
         except OSError:
             # A file could have been deleted between listdir and lstat
