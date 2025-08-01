@@ -167,7 +167,7 @@ def ardoc_testhandler(par):
             
             strng1 = []
             lower_AFEA = ARDOC_FULL_ERROR_ANALYSIS.lower()
-            errortester_cmd = [f"{ARDOC_HOME}/ardoc_errortester.py"]
+            errortester_cmd = ["python3", f"{ARDOC_HOME}/ardoc_errortester.py"]
             if lower_AFEA not in ("true", "yes") and "CITest" in testname:
                 errortester_cmd.extend(["-elst", testname, release])
                 print(f" light test_tester: {testname}_ERROR_MESSAGE {release} : ", end="")
@@ -325,7 +325,7 @@ def main():
                 if not pkgn:
                     pkgn = package
                 
-                errortester_cmd = [f"{ARDOC_HOME}/ardoc_errortester.py", "-es", pkgn, release, filename, package]
+                errortester_cmd = ["python3", f"{ARDOC_HOME}/ardoc_errortester.py", "-es", pkgn, release, filename, package]
                 result = subprocess.run(errortester_cmd, capture_output=True, text=True)
                 strng1 = result.stdout.strip()
                 
