@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
 Python migration of ardoc_errortester.pl
-Author: Migration by GitHub Copilot (original: A. Undrus)
+Scans logfiles for error and warning patterns
+Results output in format "G|W|M name directory" to stdout (empty if log is OK)
+Generates HTML formatted log unless option "s" is specified
+Type of logfile: compilation by default, QA test if option "q", integration test if "t"
+With light option "l" most error and warning patterns are invalidated for test log analysis
+
+Author: Migration from A. Undrus's Perl script
 """
 import os
 import sys
@@ -9,62 +15,132 @@ import re
 import argparse
 from pathlib import Path
 from html import escape
+import subprocess
+import shutil
 
-# --- Argument parsing ---
 def parse_args():
-    parser = argparse.ArgumentParser(description='Test logfiles for errors/warnings and generate HTML report.')
-    parser.add_argument('-s', action='store_true', help='Short output')
-    parser.add_argument('-e', action='store_true', help='Special format output')
-    parser.add_argument('-t', action='store_true', help='Testtesting mode')
-    parser.add_argument('-q', action='store_true', help='QAtesting mode')
-    parser.add_argument('-l', action='store_true', help='Light mode (limited error analysis)')
-    parser.add_argument('args', nargs='*', help='Arguments as in the Perl script')
-    return parser.parse_args()
+    """Parse command line arguments similar to the original Perl script"""
+    # Handle combined flags like -es, -tel, etc.
+    args = sys.argv[1:]
+    
+    short = False
+    specformat = False
+    testtesting = False
+    qatesting = False
+    light = False
+    
+    # Process combined flags
+    if args and args[0].startswith('-') and re.match(r'^-[qstel]+$', args[0]):
+        flags = args[0][1:]  # Remove the '-'
+        if 's' in flags:
+            short = True
+        if 'e' in flags:
+            specformat = True
+        if 't' in flags:
+            testtesting = True
+        if 'q' in flags:
+            qatesting = True
+        if 'l' in flags:
+            light = True
+        args = args[1:]  # Remove the flag argument
+    
+    return short, specformat, testtesting, qatesting, light, args
 
-# --- Environment variable reading ---
 def get_env_vars():
-    env = {}
-    keys = [
-        'ARDOC_LOG', 'ARDOC_TESTLOG', 'ARDOC_NINJALOG', 'ARDOC_HOME',
-        'ARDOC_PROJECT_NAME', 'ARDOC_PROJECT_RELNAME',
-        'ARDOC_TEST_SUCCESS_PATTERN', 'ARDOC_TEST_FAILURE_PATTERN', 'ARDOC_TEST_WARNING_PATTERN', 'ARDOC_BUILD_FAILURE_PATTERN',
-        'ARDOC_QA_SUCCESS_PATTERN', 'ARDOC_QA_FAILURE_PATTERN', 'ARDOC_QA_WARNING_PATTERN',
-        'ARDOC_WEBDIR', 'ARDOC_WEBPAGE', 'ARDOC_QALOG'
+    """Get required environment variables"""
+    return {
+        'ARDOC_LOG': os.environ.get('ARDOC_LOG', ''),
+        'ARDOC_TESTLOG': os.environ.get('ARDOC_TESTLOG', ''),
+        'ARDOC_NINJALOG': os.environ.get('ARDOC_NINJALOG', ''),
+        'ARDOC_HOME': os.environ.get('ARDOC_HOME', ''),
+        'ARDOC_PROJECT_NAME': os.environ.get('ARDOC_PROJECT_NAME', ''),
+        'ARDOC_PROJECT_RELNAME': os.environ.get('ARDOC_PROJECT_RELNAME', ''),
+        'ARDOC_TEST_SUCCESS_PATTERN': os.environ.get('ARDOC_TEST_SUCCESS_PATTERN', ''),
+        'ARDOC_TEST_FAILURE_PATTERN': os.environ.get('ARDOC_TEST_FAILURE_PATTERN', ''),
+        'ARDOC_TEST_WARNING_PATTERN': os.environ.get('ARDOC_TEST_WARNING_PATTERN', ''),
+        'ARDOC_BUILD_FAILURE_PATTERN': os.environ.get('ARDOC_BUILD_FAILURE_PATTERN', ''),
+        'ARDOC_QA_SUCCESS_PATTERN': os.environ.get('ARDOC_QA_SUCCESS_PATTERN', ''),
+        'ARDOC_QA_FAILURE_PATTERN': os.environ.get('ARDOC_QA_FAILURE_PATTERN', ''),
+        'ARDOC_QA_WARNING_PATTERN': os.environ.get('ARDOC_QA_WARNING_PATTERN', ''),
+        'ARDOC_WEBDIR': os.environ.get('ARDOC_WEBDIR', ''),
+        'ARDOC_WEBPAGE': os.environ.get('ARDOC_WEBPAGE', ''),
+        'ARDOC_QALOG': os.environ.get('ARDOC_QALOG', ''),
+    }
+
+def get_error_patterns(light=False):
+    """Define error patterns - most are invalidated in light mode for test log analysis"""
+    if light:
+        return [
+            r"ERROR ",
+            r"exit code: 143",
+            r"tests FAILED",
+            r"time quota spent"
+        ]
+    else:
+        return [
+            r": error:",
+            r"CMake Error",
+            r"runtime error:",
+            r"No rule to make target",
+            r"SyntaxError:",
+            r"Traceback \(most recent",
+            r"error: ld",
+            r"error: Failed to execute",
+            r"no build logfile",
+            r"ERROR ",
+            r"exit code: 143",
+            r"tests FAILED",
+            r"time quota spent"
+        ]
+
+def get_warning_patterns(light=False):
+    """Define warning patterns - most are invalidated in light mode for test log analysis"""
+    if light:
+        return [
+            r"WARNING",
+            r"FAILED"
+        ]
+    else:
+        return [
+            r"Errors/Problems found",
+            r"CMake Warning",
+            r"CMake Deprecation Warning",
+            r"Error in",
+            r"control reaches end of non-void",
+            r"suggest explicit braces",
+            r"> Warning:",
+            r"type qualifiers ignored on function return type",
+            r"\[-Wsequence-point\]",
+            r"permission denied",
+            r"nvcc warning :",
+            r"Warning: Fortran",
+            r"library.*\s+exposes\s+factory.*\s+declared\s+in"
+        ]
+
+def get_minor_warning_patterns(light=False):
+    """Define minor warning patterns"""
+    if light:
+        return []
+    else:
+        return [
+            r": warning: ",
+            r"Warning: the last line",
+            r"Warning: Unused class rule",
+            r"Warning:\s.*rule",
+            r"#pragma message:",
+            r"WARNING\s+.*GAUDI"
+        ]
+
+def get_success_patterns():
+    """Define success patterns"""
+    return [
+        r"Package build succeeded",
+        r"Build succeeded",
+        r"SUCCESS"
     ]
-    for k in keys:
-        env[k] = os.environ.get(k, '')
-    return env
 
-# --- Pattern setup (partial, for demonstration) ---
-E_PATTERNS = [
-    r": error:", r"CMake Error", r"runtime error:", r"No rule to make target", r"SyntaxError:",
-    r"raceback (most recent", r"CVBFGG", r"error: ld", r"error: Failed to execute", r"no build logfile"
-]
-E_IGNORE = [
-    r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"for NICOS_PROJECT_NAMERelease are"
-]
-
-# --- Additional patterns (warnings, minor warnings, success) ---
-W_PATTERNS = [
-    r"Errors/Problems found", r"CMake Warning", r"CMake Deprecation Warning", r"Error in", r"control reaches end of non-void",
-    r"suggest explicit braces", r"> Warning:", r"type qualifiers ignored on function return type", r"\[-Wsequence-point\]", r"mission denied",
-    r"nvcc warning :", r"Warning: Fortran", r"library.*\\sexposes\\s+factory.*\\sdeclared\\s+in"
-]
-W_IGNORE = [
-    r"Errors/Problems found : 0", r"CVBFGG", r"CVBFGG", r"msg", r"/external", r"/external", r"> Warning: template", r"/external", r"/external", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG"
-]
-M_PATTERNS = [
-    r": warning: ", r"Warning: the last line", r"Warning: Unused class rule", r"Warning:\\s.*rule", r"#pragma message:", r"WARNING\\s+.*GAUDI", r"CVBFGG"
-]
-M_IGNORE = [
-    r"make[", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"ClassIDSvc", r"CVBFGG"
-]
-S_PATTERNS = [
-    r"CVBFGG", r"Package build succeeded", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG", r"CVBFGG"
-]
-
-# --- HTML header ---
 def header_print(f, prblm, test_nm):
+    """Generate HTML header"""
     comment = ''
     if prblm == 0.5:
         comment = 'M'
@@ -72,6 +148,7 @@ def header_print(f, prblm, test_nm):
         comment = 'W'
     elif prblm == 2:
         comment = 'E'
+    
     f.write(f"""<html>
 <!-- {comment} -->
 <style>
@@ -116,89 +193,196 @@ background-color: #CFECEC;
 }}
 </style>
 <head><title>
-{test_nm} Logfile
+{escape(test_nm)} Logfile
 </title>
 </head>
-<BODY class=body marginwidth=\"0\" marginheight=\"0\" topmargin=\"0\" leftmargin=\"0\">
+<BODY class=body marginwidth="0" marginheight="0" topmargin="0" leftmargin="0">
 """)
 
-# --- Generalized log scanning ---
-def scan_log(logfile, patterns, ignores):
-    found = []
-    with open(logfile, 'r', errors='ignore') as f:
-        for lineno, line in enumerate(f, 1):
-            for i, pat in enumerate(patterns):
-                if pat and re.search(pat, line) and not re.search(ignores[i], line):
-                    found.append((lineno, pat, line.strip()))
-    return found
+def scan_log_for_patterns(logfile, patterns):
+    """Scan logfile for specific patterns"""
+    found_patterns = []
+    try:
+        with open(logfile, 'r', encoding='utf-8', errors='ignore') as f:
+            for lineno, line in enumerate(f, 1):
+                for pattern in patterns:
+                    if re.search(pattern, line, re.IGNORECASE):
+                        found_patterns.append((lineno, pattern, line.strip()))
+                        break  # Only report first match per line
+    except Exception as e:
+        print(f"Error reading logfile {logfile}: {e}", file=sys.stderr)
+    
+    return found_patterns
 
-# --- HTML report writing ---
-def write_html_report(html_path, prblm, test_nm, summary, findings, logfile):
-    with open(html_path, 'w') as f:
-        header_print(f, prblm, test_nm)
-        f.write(f"<div id=hdr1><b>Original log file:</b><code> {escape(logfile)} </code><br></div>\n<p><pre>\n")
-        f.write(f"<b>{escape(summary)}</b><br>\n")
-        for lineno, pat, line in findings:
-            f.write(f"<div id='prblm'>Line {lineno}: Pattern '{escape(pat)}' in: {escape(line)}</div>\n")
-        f.write("</pre></body></html>\n")
+def write_html_report(html_path, prblm, test_nm, logfile, error_patterns, warning_patterns, minor_patterns, short=False):
+    """Write HTML report"""
+    if short:
+        return  # No HTML in short mode
+    
+    try:
+        with open(html_path, 'w', encoding='utf-8') as f:
+            header_print(f, prblm, test_nm)
+            f.write(f"<div id=hdr1><b>Original log file:</b><code> {escape(logfile)} </code><br></div>\n<p><pre>\n")
+            
+            if error_patterns:
+                f.write(f"<b>ERROR PATTERNS FOUND:</b><br>\n")
+                for lineno, pattern, line in error_patterns:
+                    f.write(f"<div id='prblm'>Line {lineno}: Pattern '{escape(pattern)}' in: {escape(line)}</div>\n")
+                f.write("<br>\n")
+            
+            if warning_patterns:
+                f.write(f"<b>WARNING PATTERNS FOUND:</b><br>\n")
+                for lineno, pattern, line in warning_patterns:
+                    f.write(f"<div id='prblm'>Line {lineno}: Pattern '{escape(pattern)}' in: {escape(line)}</div>\n")
+                f.write("<br>\n")
+            
+            if minor_patterns:
+                f.write(f"<b>MINOR WARNING PATTERNS FOUND:</b><br>\n")
+                for lineno, pattern, line in minor_patterns:
+                    f.write(f"<div id='prblm'>Line {lineno}: Pattern '{escape(pattern)}' in: {escape(line)}</div>\n")
+                f.write("<br>\n")
+            
+            f.write("</pre></body></html>\n")
+    except Exception as e:
+        print(f"Error writing HTML report {html_path}: {e}", file=sys.stderr)
 
-# --- Main logic (expanded with warnings and success) ---
 def main():
-    args = parse_args()
+    short, specformat, testtesting, qatesting, light, args = parse_args()
     env = get_env_vars()
-    argv = args.args
-    # Parse flags
-    short = args.s
-    specformat = args.e
-    testtesting = args.t
-    qatesting = args.q
-    light = args.l
-    if len(argv) < 4:
-        print("ardoc_errortester.py: Four arguments required: directory_package, release, tags file, package name")
-        sys.exit(2)
-    directory_package, release, tags_file, package_name = argv[:4]
-    logdir = Path(directory_package)
-    logfiles = list(logdir.glob('*.log*'))
-    if not logfiles:
-        print(f"No log files found in {logdir}")
-        sys.exit(1)
-    logfile = str(logfiles[0])
-    print(f"Scanning {logfile} for error, warning, and success patterns...")
-    errors = scan_log(logfile, E_PATTERNS, E_IGNORE)
-    warnings = scan_log(logfile, W_PATTERNS, W_IGNORE)
-    minors = scan_log(logfile, M_PATTERNS, M_IGNORE)
-    successes = scan_log(logfile, S_PATTERNS, ["CVBFGG"]*len(S_PATTERNS))
-    html_path = str(Path(logfile).with_suffix('.html'))
-    if testtesting or qatesting:
-        # Adjust logic for test/QA modes (stub, expand as needed)
-        print("Test/QA mode enabled. (Further logic to be implemented as in Perl script)")
-    if light:
-        print("Light mode enabled. (Limited error analysis)")
-    if errors:
-        summary = "Error pattern(s) found."
-        write_html_report(html_path, 2, package_name, summary, errors, logfile)
-        print(f"Found error patterns. HTML report written to {html_path}")
-        sys.exit(2)
-    elif warnings:
-        summary = "Warning pattern(s) found."
-        write_html_report(html_path, 1, package_name, summary, warnings, logfile)
-        print(f"Found warning patterns. HTML report written to {html_path}")
-        sys.exit(1)
-    elif minors:
-        summary = "Minor warning pattern(s) found."
-        write_html_report(html_path, 0.5, package_name, summary, minors, logfile)
-        print(f"Found minor warning patterns. HTML report written to {html_path}")
-        sys.exit(0)
-    elif not successes:
-        summary = "No success pattern found. This may indicate a problem."
-        write_html_report(html_path, 2, package_name, summary, [], logfile)
-        print(f"No success pattern found. HTML report written to {html_path}")
-        sys.exit(2)
+    
+    # Determine log type and required arguments
+    if not testtesting and not qatesting:
+        # Build/compilation log
+        type_name = "package"
+        type_in_url = "c"
+        type_in_html = "build"
+        ardoc_testlogdir = os.path.dirname(env['ARDOC_LOG']) if env['ARDOC_LOG'] else ""
+        
+        if len(args) != 4:
+            if not specformat:
+                print("ardoc_errortester:")
+                print("Four arguments required: directory_package, release, tags file, package name")
+            sys.exit(2)
+        
+        directory_package, release, tags_file, package_name = args
     else:
-        summary = "No problems found. Logfile looks OK."
-        write_html_report(html_path, 0, package_name, summary, [], logfile)
-        print(f"No problems found. HTML report written to {html_path}")
-        sys.exit(0)
+        # Test log (t) or QA test log (q)
+        type_in_url = "t"
+        type_in_html = "test"
+        type_name = "test"
+        
+        if qatesting:
+            type_name = "qatest"
+            ardoc_testlogdir = os.path.dirname(env['ARDOC_QALOG']) if env['ARDOC_QALOG'] else ""
+        else:
+            ardoc_testlogdir = os.path.dirname(env['ARDOC_TESTLOG']) if env['ARDOC_TESTLOG'] else ""
+        
+        if len(args) != 2:
+            if not specformat:
+                print("ardoc_errortester:")
+                print(f"Two arguments required: names of test, release {args}")
+            sys.exit(2)
+        
+        directory_package, release = args
+        tags_file = ""
+        package_name = directory_package
+    
+    compname = directory_package
+    
+    if specformat and not testtesting and not qatesting:
+        if not specformat:
+            print(f"=== CHECK logfiles related to {compname} in {release}")
+    
+    # Find logfiles
+    logdir = Path(directory_package)
+    if not logdir.exists() or not logdir.is_dir():
+        # Try to find logs in standard locations
+        if testtesting and env['ARDOC_TESTLOG']:
+            potential_logfiles = [env['ARDOC_TESTLOG']]
+        elif qatesting and env['ARDOC_QALOG']:
+            potential_logfiles = [env['ARDOC_QALOG']]
+        elif env['ARDOC_LOG']:
+            potential_logfiles = [env['ARDOC_LOG']]
+        else:
+            if not specformat:
+                print(f"No log files found in {logdir}")
+            sys.exit(2)
+    else:
+        potential_logfiles = list(logdir.glob('*.log*'))
+        if not potential_logfiles:
+            if not specformat:
+                print(f"No log files found in {logdir}")
+            sys.exit(2)
+    
+    # Process the first logfile found
+    logfile = str(potential_logfiles[0])
+    
+    # Scan for patterns
+    error_patterns = scan_log_for_patterns(logfile, get_error_patterns(light))
+    warning_patterns = scan_log_for_patterns(logfile, get_warning_patterns(light))
+    minor_patterns = scan_log_for_patterns(logfile, get_minor_warning_patterns(light))
+    success_patterns = scan_log_for_patterns(logfile, get_success_patterns())
+    
+    # Generate HTML path
+    html_path = str(Path(logfile).with_suffix('.html'))
+    
+    # Determine result and generate appropriate output
+    result_code = 0
+    result_type = ""
+    
+    if error_patterns:
+        result_code = 2
+        result_type = "G"  # Error
+        problem_level = 2
+        if not short:
+            write_html_report(html_path, problem_level, package_name, logfile, error_patterns, warning_patterns, minor_patterns, short)
+        
+        if specformat:
+            print(f" {type_name} {compname} has problem. See ")
+            print(f"G {compname} {ardoc_testlogdir} {html_path}")
+        else:
+            # Standard output format: "G|W|M name directory"
+            print(f"G {compname} {ardoc_testlogdir}")
+        
+    elif warning_patterns:
+        result_code = 2
+        result_type = "W"  # Warning
+        problem_level = 1
+        if not short:
+            write_html_report(html_path, problem_level, package_name, logfile, error_patterns, warning_patterns, minor_patterns, short)
+        
+        if specformat:
+            print(f" {type_name} {compname} has warning. See ")
+            print(f"W {compname} {ardoc_testlogdir} {html_path}")
+        else:
+            # Standard output format: "G|W|M name directory"
+            print(f"W {compname} {ardoc_testlogdir}")
+        
+    elif minor_patterns:
+        result_code = 2
+        result_type = "M"  # Minor warning
+        problem_level = 0.5
+        if not short:
+            write_html_report(html_path, problem_level, package_name, logfile, error_patterns, warning_patterns, minor_patterns, short)
+        
+        if specformat:
+            print(f" {type_name} {compname} has minor warning. See ")
+            print(f"M {compname} {ardoc_testlogdir} {html_path}")
+        else:
+            # Standard output format: "G|W|M name directory"
+            print(f"M {compname} {ardoc_testlogdir}")
+        
+    else:
+        # No problems found
+        result_code = 0
+        if not short:
+            write_html_report(html_path, 0, package_name, logfile, [], [], [], short)
+        
+        if specformat:
+            print(f"         Logfiles of {type_name} {compname} looks OK")
+        # No stdout output for OK case (empty if log is OK)
+    
+    sys.exit(result_code)
 
 if __name__ == "__main__":
     main()
