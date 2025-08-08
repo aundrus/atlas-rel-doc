@@ -212,9 +212,9 @@ def ardoc_testhandler(par):
             lower_AFEA = ARDOC_FULL_ERROR_ANALYSIS.lower()
             if lower_AFEA not in ["true", "yes"] and "CITest" in testname:
                 # Light error analysis
-                cmd = [f"{ARDOC_HOME}/ardoc_errortester.py", "-elst", testname, release]
+                cmd = ["python3", f"{ARDOC_HOME}/ardoc_errortester.py", "-elst", testname, release]
             else:
-                cmd = [f"{ARDOC_HOME}/ardoc_errortester.py", "-est", testname, release]
+                cmd = ["python3", f"{ARDOC_HOME}/ardoc_errortester.py", "-est", testname, release]
 
             try:
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
@@ -433,7 +433,7 @@ def main():
                         container_addr[package] = addr
 
                 # Run error tester for build logs
-                cmd = [f"{ARDOC_HOME}/ardoc_errortester.py", "-es", pkgn, release, filename, package]
+                cmd = ["python3", f"{ARDOC_HOME}/ardoc_errortester.py", "-es", pkgn, release, filename, package]
                 try:
                     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
                     strng1 = result.stdout.splitlines()
