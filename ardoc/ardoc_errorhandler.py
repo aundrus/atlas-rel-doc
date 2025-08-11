@@ -89,17 +89,23 @@ def ardoc_testhandler(par):
     dirdir = Path(ARDOC_RELHOME) / ARDOC_INTTESTS_DIR
 
     # Get all log files
-    try:
-        allfiles = [f for f in os.listdir(ARDOC_TESTLOGDIR) if f.endswith(".log")]
+    try: 
+       allfiles = [
+          f for f in os.listdir(ARDOC_TESTLOGDIR)
+          if re.match(r"^.+log$", f)
+       ]
     except OSError:
-        allfiles = []
-    
+       allfiles = []
+
+    print("LIST ALL FILES in ",ARDOC_TESTLOGDIR," : ", allfiles)    
+
     list91 = [f for f in allfiles if not f.startswith("ardoc_")]
     list_files = [f for f in list91 if not f.endswith("logloglog")]
 
     # Sort files
     list_files.sort(key=compar)
 
+    print("LIST FILES ",list_files)
     filet_nn = Path(ARDOC_WORK_AREA) / f"{testprepage}_number"
 
     # Read test database
@@ -320,7 +326,9 @@ def main():
     ARDOC_LOGDIR = Path(ARDOC_LOG).parent
 
     # Process test results
+    print("========1==")
     ardoc_testhandler(2)  # Process integration/unit tests
+    print("========2==")
     
     # Change to build directory
     ndir = Path(ARDOC_RELHOME) / ARDOC_PROJECTBUILD_DIR
