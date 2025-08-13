@@ -81,8 +81,8 @@ cat ${tmp_log} >> ${ARDOC_LOG}
 
 dbuildlog=`dirname $ARDOC_BUILDLOG`
 python $ARDOC_HOME/ardoc_container_extractor_monol.py >> ${ARDOC_LOG} 2>&1
-python3 $ARDOC_HOME/ardoc_cmake_loghandler_new.py >> ${ARDOC_LOG} 2>&1
-python3 $ARDOC_HOME/ardoc_cmake_loghandler_new_2ndloop.py -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1
+python3 $ARDOC_HOME/ardoc_cmake_loghandler.py >> ${ARDOC_LOG} 2>&1
+python3 $ARDOC_HOME/ardoc_cmake_loghandler_2ndloop.py -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1
 
 ##$ARDOC_HOME/ardoc_db_access -b -s "ERR"
 #${ARDOC_HOME}/ardoc_webpage --nomail --jid $jid >> ${ARDOC_LOG} 2>&1; stat=$?

@@ -70,7 +70,7 @@ def main():
         fields = line.split()
         pkg = fields[0]
         pkg_base = Path(pkg).name
-        print(f"ardoc_cmake_loghandler.py: package: {pkg} , base {pkg_base}")
+                print(f"ardoc_cmake_loghandler.py: version file: {file_vers}")
 
         dirlog_path_str = f"{log_type}Logs"
         dirlog = Path(ardoc_relhome) / 'build' / ardoc_arch / dirlog_path_str
@@ -81,7 +81,7 @@ def main():
             all_logs = [f for f in os.listdir(dirlog) if f.startswith(f"{pkg_base}.log")]
             # Sort logs by modification time, oldest first
             all_logs.sort(key=lambda f: (dirlog / f).stat().st_mtime)
-            print(f"ardoc_cmake_loghandler.py: logs: {all_logs}")
+            print(f"ardoc_cmake_loghandler.py: logs: {listlog}")
         except FileNotFoundError:
             all_logs = []
             print(f"ardoc_cmake_loghandler.py: warning: log directory not found: {dirlog}")

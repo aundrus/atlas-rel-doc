@@ -158,8 +158,8 @@ $ARDOC_HOME/ardoc_db_access_test -b -s "BUILD" >> $dirlog/ardoc_build.logora 2>&
 $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_build_results.py >> $dirlog/ardoc_build.logora 2>&1 
 
 dbuildlog=`dirname $ARDOC_BUILDLOG`
-python3 $ARDOC_HOME/ardoc_cmake_loghandler_new.py >> ${ARDOC_LOG} 2>&1
-python3 $ARDOC_HOME/ardoc_cmake_loghandler_new_2ndloop.py -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1
+python3 $ARDOC_HOME/ardoc_cmake_loghandler.py >> ${ARDOC_LOG} 2>&1
+python3 $ARDOC_HOME/ardoc_cmake_loghandler_2ndloop.py -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1
 python $ARDOC_HOME/ardoc_testdb_generator.py >> ${ARDOC_TESTLOG} 2>&1
 
 ${ARDOC_HOME}/ardoc_univ_progress_informer --phase 1 --step checkout --check "$check_checkout" >> ${ARDOC_CHECKOUTLOG} 2>&1
