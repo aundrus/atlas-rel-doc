@@ -81,7 +81,7 @@ if [ "${gen_cache}" != "" ]; then caches=" -f ${gen_cache}"; fi
 if [ "${gen_cache_extra}" != "" ]; then caches="${caches} -f ${gen_cache_extra}"; fi
 if [ "${common_cache}" != "" ]; then caches=" -f ${common_cache}${caches}"; fi
 if [ "${cache}" !=	"" ]; then caches="${caches} -f ${cache}"; fi
-${ARDOC_HOME}/ardoc_cachescan.pl -d "PROJECT SETTINGS" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -d "PROJECT SETTINGS" ${caches}
 source ${ARDOC_WORK_AREA}/cache_scan_result
 
 #if [ "$relname" != "" ]; then ARDOC_PROJECT_RELNAME="$relname"; fi
@@ -91,12 +91,12 @@ cat ${ARDOC_WORK_AREA}/cache_scan_result > ${ARDOC_WORK_AREA}/cache_scan_result_
 rm -f ${ARDOC_WORK_AREA}/cache_scan_result
 touch ${ARDOC_WORK_AREA}/cache_scan_result_gen
 if [ "${gen_cache}" != "" ]; then
-${ARDOC_HOME}/ardoc_cachescan.pl -c "PROJECT SETTINGS" -f ${gen_cache}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "PROJECT SETTINGS" -f ${gen_cache}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> ${ARDOC_WORK_AREA}/cache_scan_result_gen
 fi
 rm -f ${ARDOC_WORK_AREA}/cache_scan_result
 #
-${ARDOC_HOME}/ardoc_cachescan.pl -c "PROJECT SETTINGS" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "PROJECT SETTINGS" ${caches}
 #
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> ${ARDOC_WORK_AREA}/cache_scan_result_saved
 
@@ -282,7 +282,7 @@ echo "------------------------------------------------------------" >> ${ARDOC_L
 
 # (1) release build tool setup
 rm -f ${ARDOC_WORK_AREA}/cache_scan_result
-${ARDOC_HOME}/ardoc_cachescan.pl -d "RELEASE TOOL SETUP" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -d "RELEASE TOOL SETUP" ${caches}
 source ${ARDOC_WORK_AREA}/cache_scan_result
 [[ "$dir" = "" ]] && dir="."
 [[ "$command" = "source" ]] && export ARDOC_RELEASETOOLSETUP_COMMAND=${command}
@@ -291,26 +291,26 @@ export ARDOC_RELEASETOOLSETUP_DIR=${dir}
 unset dir
 
 rm -rf ${ARDOC_WORK_AREA}/ardoc_toolinit_gen
-${ARDOC_HOME}/ardoc_cachescan.pl -c "RELEASE TOOL SETUP" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "RELEASE TOOL SETUP" ${caches}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
 ${ARDOC_WORK_AREA}/ardoc_toolinit_gen
 
 # (2) checkout parameters
 rm -f ${ARDOC_WORK_AREA}/cache_scan_result
-${ARDOC_HOME}/ardoc_cachescan.pl -d "CHECKOUT" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -d "CHECKOUT" ${caches}
 source ${ARDOC_WORK_AREA}/cache_scan_result
 [[ "$shell" = "" ]] && shell="/bin/sh"
 export ARDOC_CHECKOUT_SHELL=${shell}
 unset shell
 
 rm -f ${ARDOC_WORK_AREA}/ardoc_checkout_gen
-${ARDOC_HOME}/ardoc_cachescan.pl -c "CHECKOUT" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "CHECKOUT" ${caches}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
 ${ARDOC_WORK_AREA}/ardoc_checkout_gen
 
 # (3) project setup
 rm -f ${ARDOC_WORK_AREA}/cache_scan_result
-${ARDOC_HOME}/ardoc_cachescan.pl -d "PROJECT SETUP" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -d "PROJECT SETUP" ${caches}
 source ${ARDOC_WORK_AREA}/cache_scan_result
 [[ "$dir" = "" ]] && dir="."
 export ARDOC_PROJECTSETUP_DIR=${dir}
@@ -320,13 +320,13 @@ unset dir
 unset command
 
 rm -f ${ARDOC_WORK_AREA}/ardoc_projectconf_gen
-${ARDOC_HOME}/ardoc_cachescan.pl -c "PROJECT SETUP" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "PROJECT SETUP" ${caches}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
 ${ARDOC_WORK_AREA}/ardoc_projectconf_gen
 
 # (4) build command
 rm -f ${ARDOC_WORK_AREA}/cache_scan_result
-${ARDOC_HOME}/ardoc_cachescan.pl -d "PROJECT BUILD" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -d "PROJECT BUILD" ${caches}
 source ${ARDOC_WORK_AREA}/cache_scan_result
 [[ "$dir" = "" ]] && dir="."
 export ARDOC_PROJECTBUILD_DIR=${dir}
@@ -336,19 +336,19 @@ export ARDOC_BUILD_SHELL=${shell}
 unset shell
 
 rm -f ${ARDOC_WORK_AREA}/ardoc_build_gen
-${ARDOC_HOME}/ardoc_cachescan.pl -c "PROJECT BUILD" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "PROJECT BUILD" ${caches}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
 ${ARDOC_WORK_AREA}/ardoc_build_gen
 
 # (5) error analysis
 rm -f ${ARDOC_WORK_AREA}/ardoc_errorhandler_gen
-${ARDOC_HOME}/ardoc_cachescan.pl -c "ERROR ANALYSIS" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "ERROR ANALYSIS" ${caches}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
 ${ARDOC_WORK_AREA}/ardoc_errorhandler_gen
 
 # (5a) parameters for web page
 rm -f ${ARDOC_WORK_AREA}/ardoc_webpage_gen
-${ARDOC_HOME}/ardoc_cachescan.pl -c "WEB PAGE" ${caches}
+python3 ${ARDOC_HOME}/ardoc_cachescan.py -c "WEB PAGE" ${caches}
 cat ${ARDOC_WORK_AREA}/cache_scan_result >> \
 ${ARDOC_WORK_AREA}/ardoc_webpage_gen
 

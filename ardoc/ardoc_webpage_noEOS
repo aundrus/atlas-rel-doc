@@ -12,13 +12,11 @@ phase=0
 nomail=0
 nobuildmail=0
 notestmail=0
-statichtml=0
 jid="NONE"
 while [ $# -ne 0 ]; do
     case $1 in
          --clean)      phase=1;;
          --noerror)    phase=0; noerrorhandler=1;;
-         --statichtml) statichtml=1;;
          --jid)        jid=$2; shift;;
     esac
     shift
@@ -62,7 +60,6 @@ else # if [ "$phase" -eq 1 ]; then
 export ARDOC_PROJECT_RELNAME_COPY=$ARDOC_PROJECT_RELNAME
 ${ARDOC_HOME}/ardoc_lock --lock --dir ${ARDOC_WEBDIR}
 ${ARDOC_HOME}/ardoc_errorhandler --jid $jid
-[[ "$statichtml" -eq 1 ]] && ${ARDOC_HOME}/ardoc_pagemaker.pl
 ${ARDOC_HOME}/ardoc_lock --unlock --dir ${ARDOC_WEBDIR}
 #if [ "$ARDOC_WEB_ACCESS_DIR_ALT" != "" ]; then
 #  copy_origin="$ARDOC_WEBDIR"

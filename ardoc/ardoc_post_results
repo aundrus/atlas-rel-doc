@@ -1,0 +1,195 @@
+#!/bin/sh
+#
+# ARDOC - ATLAS Release DOCumentation builder
+# Author Alex Undrus <undrus@bnl.gov>
+# 
+# ----------------------------------------------------------
+# ardoc_job_doc
+# ----------------------------------------------------------
+#
+function process_message () {
+arg=$1
+if [ "${arg}" == 0 ]; then return 0; fi
+echo ${arg} | cut -d' ' -f1
+db_code=0
+[[ "${arg}" = "G" ]] && db_code=1
+[[ "${arg}" = "W" ]] && db_code=2
+[[ "${arg}" = "M" ]] && db_code=4 
+return ${db_code}
+}
+function show_help() {
+    echo "Usage: ardoc_post_results \\"
+    echo " -s|--stage <stage name> "
+}
+
+jid="NONE"
+stage=""
+while [ $# -ne 0 ]; do
+    case $1 in
+         -s | --stage)    stage=$2; shift;;
+         -* | --*)        show_help; exit 1;;
+    esac
+    shift
+done
+
+comname=`basename $0`
+if [ "$comname" = "ardoc_post_results" ]; then
+exitcomjob="exit"
+else
+exitcomjob="return"
+fi
+
+possible_stages=("build" "test" "buildandtest" "image" "co" "ext" "cb" "cpack")
+if [ "${stage}" = "" ]; then
+echo "ardoc_post_results: Error: stage is indicated in the command line"
+eval ${exitcomjob} 1
+fi
+if [[ ! " ${possible_stages[@]} " =~ " ${stage} " ]]; then
+echo "ardoc_post_results: Error: indicated stage ${stage} differs from allowed \"${possible_stages[@]}\""
+eval ${exitcomjob} 1  
+fi
+if [ "${ARDOC_HOME}" = "" ]; then
+echo "ardoc_post_results: ARDOC_HOME variable is not defined, "
+echo "           please set before running ardoc jobs"
+eval ${exitcomjob} 1
+fi
+if [ "${ARDOC_PROJECT_RELNAME}" = "" ]; then
+echo "ardoc_post_results: ARDOC_PROJECT_RELNAME variable is not defined, "
+echo "           please set before running ardoc jobs"
+eval ${exitcomjob} 1
+fi
+
+export ARDOC_BUILD_FROM_SCRATCH="no"
+export ARDOC_LOG_SCRATCH="no"
+#rm -f /tmp/ardoc_postlog* > /dev/null 2>&1
+tmp_log="/tmp/ardoc_post${stage}log_$$"
+#######STEP 0   CONFIG##########
+date_start_config=`date +"%Y-%m-%d %H:%M:%S"`
+source ${ARDOC_HOME}/ardoc_config > ${tmp_log} 2>&1; stat=$?
+echo "ardoc_post_results: tmp log ${tmp_log}"
+if [ "$stat" -ne 0 ]; then 
+echo "ARDOC_LOG=" ${ARDOC_LOG}
+echo "ardoc_post_results:  ARDOC failed at configuration" >> ${ARDOC_LOG}; eval ${exitcomjob} ${stat}  
+fi
+#######    
+echo "ardoc_post_results: output of configuration step:"
+cat ${tmp_log}           
+echo "ardoc_post_results: ARDOC env variables (stage $stage):"
+env | grep ARDOC
+cat ${tmp_log} >> ${ARDOC_LOG}
+###### 
+
+jobid=""
+if [ -f ${ARDOC_GEN_CONFIG_AREA}/jobid.txt ]; then
+   jobid=`cat ${ARDOC_GEN_CONFIG_AREA}/jobid.txt | head -1`
+   echo "ardoc_post_results: assigned job id $jobid"
+else
+   echo "ardoc_post_results: Error: job id text file was not found: ${ARDOC_GEN_CONFIG_AREA}/jobid.txt"
+   ${exitcomtool} 1
+fi
+if [[ ! ${jobid} =~ ^[0-9]+$ ]]; then
+    echo "ardoc_post_results: Error: job id is non digit: $jobid"
+    ${exitcomtool} 1
+fi
+export ARDOC_JOBID="${jobid}"
+
+if [ "${stage}" != "init" ]; then
+  echo "ardoc_post_results: Info: starting ardoc_package_test_lists.py" >> ${ARDOC_LOG}
+  python $ARDOC_HOME/ardoc_package_test_lists.py >> ${ARDOC_LOG} 2>&1
+fi
+
+genlogdir=`dirname $ARDOC_LOG`
+dbuildlog=`dirname $ARDOC_BUILDLOG`
+if [ "${stage}" = "build" -o "${stage}" = "buildandtest" ]; then
+#  NEXT TWO lines moved to ardoc_job_ini
+#  $ARDOC_HOME/ardoc_db_access -b -s "BUILD" >> ${genlogdir}/ardoc_general.logora 2>&1
+#  $ARDOC_HOME/ardoc_db_access -e -s "BUILD" >> ${genlogdir}/ardoc_general.logora 2>&1
+  echo "ardoc_post_results: START build loghandler"
+  python3 $ARDOC_HOME/ardoc_cmake_loghandler.py >> ${ARDOC_LOG} 2>&1
+  echo "ardoc_post_results: END build loghandler"
+  python3 $ARDOC_HOME/ardoc_cmake_loghandler_2ndloop.py -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1 
+  echo "ardoc_post_results: END build 2nd loop loghandler"
+elif [ "${stage}" = "test" -o "${stage}" = "buildandtest" ]; then
+  $ARDOC_HOME/ardoc_db_access -b -s "INT" >> ${genlogdir}/ardoc_general.logora 2>&1
+  $ARDOC_HOME/ardoc_db_access -e -s "INT" >> ${genlogdir}/ardoc_general.logora 2>&1
+  echo "ardoc_post_results: START test loghandler"
+  echo "ardoc_post_results: START test loghandler" >> ${ARDOC_LOG}
+  python3 $ARDOC_HOME/ardoc_cmake_loghandler.py -t >> ${ARDOC_LOG} 2>&1
+  echo "ardoc_post_results: END test loghandler" >> ${ARDOC_LOG}
+  echo "ardoc_post_results: START adding ctest results"
+  echo "ardoc_post_results: START adding ctest results" >> ${ARDOC_LOG} 
+  python ${ARDOC_HOME}/ardoc_testdb_generator.py >> ${ARDOC_LOG} 2>&1
+  echo "ardoc_post_results: END adding ctest results" >> ${ARDOC_LOG}
+fi
+
+${ARDOC_HOME}/ardoc_db_access -b -s "ERR" >> ${genlogdir}/ardoc_general.logora 2>&1
+
+if [ "${stage}" = "build" -o "${stage}" = "buildandtest" -o "${stage}" = "test" -o "${stage}" = "init" ]; then
+    squash_opt=""
+    if [ "${stage}" = "buildandtest" -o "${stage}" = "test" ]; then
+	squash_opt="--squash"
+    fi 
+    ${ARDOC_HOME}/ardoc_webpage ${squash_opt} >> ${ARDOC_LOG} 2>&1; stat=$?
+fi
+statwcp=0
+if [ "${stage}" = "build" -o "${stage}" = "buildandtest" ]; then
+#
+echo "ardoc_post_results: START copying ninja logfile, if any"
+if [ "${ARDOC_NINJALOG}" != "" ]; then
+if [ -f ${ARDOC_NINJALOG} ]; then
+   ninja_copy_dest="${ARDOC_WEBDIR}/ARDOC_Log_${ARDOC_PROJECT_RELNAME}"
+   if [ -d ${ninja_copy_dest} ]; then
+       cp -a ${ARDOC_NINJALOG} ${ninja_copy_dest}/.
+       echo "ardoc_post_results: END copying ${ARDOC_NINJALOG} to ${ninja_copy_dest}"
+   fi
+fi
+fi
+#
+${ARDOC_HOME}/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_build_results.py >> ${genlogdir}/ardoc_build.logora 2>&1
+elif [ "${stage}" = "test" -o "${stage}" = "buildandtest" ]; then
+${ARDOC_HOME}/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_test_results.py >> ${genlogdir}/ardoc_test_final.logora 2>&1
+elif [ "${stage}" = "image" -o "${stage}" = "co" -o "${stage}" = "ext" -o "${stage}" = "cb" -o "${stage}" = "cpack" ]; then
+stage_logfile=${ARDOC_IMAGELOG}
+[[ "${stage}" = "co" ]] && stage_logfile="${ARDOC_CHECKOUTLOG}"
+[[ "${stage}" = "ext" ]] && stage_logfile="${ARDOC_EXTERNALSLOG}"
+[[ "${stage}" = "cb" ]] && stage_logfile="${ARDOC_CMAKECONFIGLOG}"
+[[ "${stage}" = "cpack" ]] && stage_logfile="${ARDOC_CPACKLOG}"
+if [ ! -f ${stage_logfile} ]; then
+  touch ${stage_logfile} 
+  echo "Logfile not found for this stage of job. Severe problems are possible. Consult job outputs at https://atlas-jenkins.cern.ch" >> ${stage_logfile}  
+fi
+logora_file="${genlogdir}/ardoc_${stage}.logora"
+echo "ardoc_post_results: START ${stage} log analysis, output goes to ${logora_file}" `date` | tee -a ${logora_file}
+error_message=`python ${ARDOC_HOME}/ardoc_univ_errortester.py -f ${stage_logfile} -o ${stage} | tee -a ${logora_file}`
+process_message ${error_message}
+db_code=$?
+echo "ardoc_post_results: error message ${error_message}" | tee -a ${logora_file}
+echo "ardoc_post_results: error code ${db_code}" | tee -a ${logora_file} 
+${ARDOC_HOME}/ardoc_db_access -b -s ${stage} >> ${genlogdir}/ardoc_${stage}.logora 2>&1
+${ARDOC_HOME}/ardoc_db_access -e -s ${stage} -c ${db_code} >> ${genlogdir}/ardoc_${stage}.logora 2>&1
+${ARDOC_HOME}/ardoc_webpage --copy >> ${ARDOC_LOG} 2>&1; statwcp=$?
+fi
+
+${ARDOC_HOME}/ardoc_db_access -e -s "ERR" >> ${genlogdir}/ardoc_general.logora 2>&1
+
+${ARDOC_HOME}/ardoc_oracle_wrapper.sh 2 python ${ARDOC_HOME}/ardoc_oracle_hbeat.py --end >> ${genlogdir}/ardoc_general.logora 2>&1
+
+date +"%Y-%m-%d %H:%M" > ${ARDOC_WORK_AREA}/end_date
+
+echo "ardoc_post_results: ARDOC_LOG ", $ARDOC_LOG
+
+if [ "$stat" -ne 0 ]; then
+echo "ardoc_post_results:  ARDOC failed while analysing error or generating web pages";
+fi
+
+
+
+
+
+
+
+
+
+
+
+

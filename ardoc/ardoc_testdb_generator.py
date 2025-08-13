@@ -90,7 +90,7 @@ for x in lines_db:
         shutil.copy2(testpath, copypath)
         if re.search('unit-test',testname,re.IGNORECASE):
             print("ardoc_testdb_generator: modifying file", copypath)
-            os.system(ardoc_home+os.sep+'unit_test_log_processor.pl '+copypath)
+            os.system('python3 '+ardoc_home+os.sep+'unit_test_log_processor.py '+copypath)
     else:
         print("ardoc_testdb_generator: Warning: test log does not exist: ",testpath) 
     if os.path.isfile(timestamppath):

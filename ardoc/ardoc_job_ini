@@ -1,0 +1,162 @@
+#!/bin/sh
+#
+# ARDOC - ATLAS Release DOCumentation builder
+# Author Alex Undrus <undrus@bnl.gov>
+# 
+# ----------------------------------------------------------
+# ardoc_job_ini
+# ----------------------------------------------------------
+#
+jid="NONE"
+sign_cancel=0
+sign_abort=0
+while [ $# -ne 0 ]; do
+    case $1 in
+              --cancel) sign_cancel=1;;
+              --abort) sign_abort=1;;
+    esac
+    shift
+done
+
+comname=`basename $0`
+if [ "$comname" = "ardoc_job_ini" ]; then
+exitcomjob="exit"
+else
+exitcomjob="return"
+fi
+
+if [ "${ARDOC_HOME}" = "" ]; then
+echo "ardoc_job_ini: Error: ARDOC_HOME variable is not defined, " | tee -a ${ARDOC_LOG}
+echo "           please set before running ardoc jobs" | tee -a ${ARDOC_LOG}
+eval ${exitcomjob} 1
+fi
+if [ "${ARDOC_PROJECT_RELNAME}" = "" ]; then
+echo "ardoc_job_ini: Error: ARDOC_PROJECT_RELNAME variable is not defined, " | tee -a ${ARDOC_LOG}
+echo "           please set before running ardoc jobs" | tee -a ${ARDOC_LOG}
+eval ${exitcomjob} 1
+fi
+
+if [ "$sign_cancel" -eq 1 -a "$sign_abort" -eq 1 ]; then
+echo "ardoc_job_ini: Warning: both cancel and abort options are requested. Proceeding with cancel option"
+echo "ardoc_job_ini: Info: only one option can be requested"
+sign_abort=0
+fi
+
+#rm -f /tmp/ardoc_log* > /dev/null 2>&1
+tmp_log="/tmp/ardoc_log_$$"
+tmp_env="/tmp/ardoc_env_$$"
+env > $tmp_env
+#######STEP 0   CONFIG##########
+date_start_config=`date +"%Y-%m-%d %H:%M:%S"`
+source ${ARDOC_HOME}/ardoc_config > ${tmp_log} 2>&1; stat=$?
+echo "ardoc_job_ini: tmp log ${tmp_log}" >> ${ARDOC_LOG}
+if [ "$stat" -ne 0 ]; then 
+echo "ardoc_job_ini: START, ARDOC_LOG=" ${ARDOC_LOG} | tee -a ${ARDOC_LOG}
+echo "ardoc_job_ini:  ARDOC failed at configuration" >> ${ARDOC_LOG}; eval ${exitcomjob} ${stat}  
+fi
+  dsta=`date +"%Y-%m-%d %H:%M"`
+  echo $dsta > ${ARDOC_WORK_AREA}/start_date
+  [[ -f ${ARDOC_WORK_AREA}/end_date ]] && rm -f ${ARDOC_WORK_AREA}/end_date
+  touch ${ARDOC_WORK_AREA}/end_date
+
+#######    
+echo "ardoc_job_ini: ARDOC env variables:" | tee -a ${ARDOC_LOG}
+env | grep ARDOC | tee -a ${ARDOC_LOG}
+echo "ardoc_job_ini: output of configuration step:" >> ${ARDOC_LOG}
+cat ${tmp_log} >> ${ARDOC_LOG}
+###### 
+######CLEANUP OF ARDOC LOCAL AREA
+python3 ${ARDOC_HOME}/ardoc_home_cleaner.py 60 | tee -a ${ARDOC_LOG}
+######
+
+dirlog=`dirname $ARDOC_LOG`
+[[ -f $dirlog/ardoc_test_final.logora ]] && rm -f $dirlog/ardoc_test_final.logora
+[[ -f $dirlog/ardoc_general.logora ]] && rm -f $dirlog/ardoc_general.logora
+[[ -f $dirlog/ardoc_build.logora ]] && rm -f $dirlog/ardoc_build.logora
+[[ -f $dirlog/ardoc_cb.logora ]] && rm -f $dirlog/ardoc_cb.logora
+[[ -f $dirlog/ardoc_co.logora ]] && rm -f $dirlog/ardoc_co.logora
+[[ -f $dirlog/ardoc_ext.logora ]] && rm -f $dirlog/ardoc_ext.logora
+[[ -f $dirlog/ardoc_image.logora ]] && rm -f $dirlog/ardoc_image.logora
+touch $dirlog/ardoc_test_final.logora
+touch $dirlog/ardoc_general.logora
+touch $dirlog/ardoc_build.logora
+touch $dirlog/ardoc_cb.logora
+touch $dirlog/ardoc_co.logora
+touch $dirlog/ardoc_ext.logora
+touch $dirlog/ardoc_image.logora
+
+echo "ardoc_job_ini: START ardoc_oracle_starter.sh" >> ${ARDOC_LOG}
+${ARDOC_HOME}/ardoc_oracle_starter.sh 2>&1 >> ${dirlog}/ardoc_general.logora; st_st=$? 
+echo "ardoc_job_ini: END ardoc_oracle_starter.sh" >> ${ARDOC_LOG}
+
+jobid=""
+if [ "$st_st" -ne 0 ]; then
+echo "ardoc_job_ini: Error: ardoc_oracle_starter.sh returned $st" >> ${ARDOC_LOG}
+${exitcomtool} 1
+else
+  if [ -f ${ARDOC_GEN_CONFIG_AREA}/jobid.txt ]; then
+     jobid=`cat ${ARDOC_GEN_CONFIG_AREA}/jobid.txt | head -1`
+     echo "ardoc_job_ini: assigned job id $jobid" >> ${ARDOC_LOG}
+  else
+     echo "ardoc_job_ini: Error: job id text file was not created: ${ARDOC_GEN_CONFIG_AREA}/jobid.txt" >> ${ARDOC_LOG}
+     ${exitcomtool} 1
+  fi
+fi
+if [[ ! ${jobid} =~ ^[0-9]+$ ]]; then
+    echo "ardoc_job_ini: Error: job id is non digit: $jobid" >> ${ARDOC_LOG}
+    ${exitcomtool} 1
+fi
+export ARDOC_JOBID="${jobid}"
+
+echo "ardoc_job_ini: Info: starting ardoc_db_access -b -s \"TOOLINIT\"" >> ${ARDOC_LOG}
+echo "ardoc_job_ini: Info: starting ardoc_db_access -b -s \"TOOLINIT\"" >> ${dirlog}/ardoc_general.logora
+$ARDOC_HOME/ardoc_db_access -b -s "TOOLINIT" 2>&1 >> ${dirlog}/ardoc_general.logora
+if [ "${sign_cancel}" -eq 0 ]; then
+  echo "ardoc_job_ini: Info: starting ardoc_db_access -b -s \"CHECKOUT\"" >> ${ARDOC_LOG}
+  echo "ardoc_job_ini: Info: starting ardoc_db_access -b -s \"CHECKOUT\"" >> ${dirlog}/ardoc_general.logora
+  $ARDOC_HOME/ardoc_db_access -b -s "CHECKOUT" 2>&1 >> ${dirlog}/ardoc_general.logora
+  echo "ardoc_job_ini: Info: starting ardoc_db_access -b -s \"PROJECTCONF\"" >> ${ARDOC_LOG}
+  echo "ardoc_job_ini: Info: starting ardoc_db_access -b -s \"PROJECTCONF\"" >> ${dirlog}/ardoc_general.logora
+  $ARDOC_HOME/ardoc_db_access -b -s "PROJECTCONF" 2>&1 >> ${dirlog}/ardoc_general.logora
+fi
+echo "ardoc_job_ini: Info: starting ardoc_db_access -e -s \"TOOLINIT\"" >> ${ARDOC_LOG}
+echo "ardoc_job_ini: Info: starting ardoc_db_access -e -s \"TOOLINIT\"" >> ${dirlog}/ardoc_general.logora
+$ARDOC_HOME/ardoc_db_access -e -s "TOOLINIT" 2>&1 >> ${dirlog}/ardoc_general.logora
+if [ "${sign_cancel}" -eq 0 ]; then
+  echo "ardoc_job_ini: Info: starting ardoc_db_access -e -s \"CHECKOUT\"" >> ${ARDOC_LOG}
+  echo "ardoc_job_ini: Info: starting ardoc_db_access -e -s \"CHECKOUT\"" >> ${dirlog}/ardoc_general.logora
+  $ARDOC_HOME/ardoc_db_access -e -s "CHECKOUT" 2>&1 >> ${dirlog}/ardoc_general.logora
+  echo "ardoc_job_ini: Info: starting ardoc_db_access -e -s \"PROJECTCONF\"" >> ${ARDOC_LOG}
+  echo "ardoc_job_ini: Info: starting ardoc_db_access -e -s \"PROJECTCONF\"" >> ${dirlog}/ardoc_general.logora
+  $ARDOC_HOME/ardoc_db_access -e -s "PROJECTCONF" 2>&1 >> ${dirlog}/ardoc_general.logora 
+  if [ "${sign_abort}" -eq 0 ]; then 
+#TEMPORARY in this script - setting build times
+    echo "ardoc_job_ini: Info: starting ardoc_db_access -b/-e -s \"BUILD\"" >> ${ARDOC_LOG}
+    echo "ardoc_job_ini: Info: starting ardoc_db_access -b/-e -s \"BUILD\"" >> ${dirlog}/ardoc_general.logora
+    $ARDOC_HOME/ardoc_db_access -b -s "BUILD" 2>&1 >> ${dirlog}/ardoc_general.logora
+    $ARDOC_HOME/ardoc_db_access -e -s "BUILD" 2>&1 >> ${dirlog}/ardoc_general.logora
+  fi
+fi
+if [ "${sign_cancel}" -eq 1 ]; then
+  echo "ardoc_job_ini: Info: starting ardoc_oracle_hbeat.py --canceled" >> ${ARDOC_LOG}
+  echo "ardoc_job_ini: Info: starting ardoc_oracle_hbeat.py --canceled" >> ${dirlog}/ardoc_general.logora  
+  ${ARDOC_HOME}/ardoc_oracle_wrapper.sh 2 python ${ARDOC_HOME}/ardoc_oracle_hbeat.py --canceled >> ${dirlog}/ardoc_general.logora 2>&1
+fi
+if [ "${sign_abort}" -eq 1 ]; then
+  echo "ardoc_job_ini: Info: starting ardoc_oracle_hbeat.py --aborted" >> ${ARDOC_LOG}
+  echo "ardoc_job_ini: Info: starting ardoc_oracle_hbeat.py --aborted" >> ${dirlog}/ardoc_general.logora
+  ${ARDOC_HOME}/ardoc_oracle_wrapper.sh 2 python ${ARDOC_HOME}/ardoc_oracle_hbeat.py --aborted >> ${dirlog}/ardoc_general.logora 2>&1
+fi
+####END
+
+
+
+
+
+
+
+
+
+
+
+

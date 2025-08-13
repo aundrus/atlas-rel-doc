@@ -79,7 +79,7 @@ echo "COPYING $MR_PATH_TO_CONFBUILDLOG $ARDOC_CONFBUILDLOG "
 [[ -f $MR_PATH_TO_CONFBUILDLOG ]] && cp -a $MR_PATH_TO_CONFBUILDLOG $ARDOC_CONFBUILDLOG
 check_conf=""
 if [ "${ARDOC_CONFBUILDLOG}" != "" -a -f ${ARDOC_CONFBUILDLOG} ]; then
-check_conf=`${ARDOC_HOME}/ardoc_univ_errortester.pl --conf ${ARDOC_CONFBUILDLOG}`
+check_conf=`python3 ${ARDOC_HOME}/ardoc_univ_errortester.py --conf ${ARDOC_CONFBUILDLOG}`
 fi
 if [ "$check_conf" != "" ]; then
 echo "ardoc_job_doc: configuration build log contains problematic string:" >> ${ARDOC_CONFBUILDLOG}
@@ -93,7 +93,7 @@ echo "COPYING $MR_PATH_TO_CHECKOUTLOG $ARDOC_CHECKOUTLOG "
 [[ -f $MR_PATH_TO_CHECKOUTLOG ]] && cp -a $MR_PATH_TO_CHECKOUTLOG $ARDOC_CHECKOUTLOG
 check_checkout=""
 if [ "${ARDOC_CHECKOUTLOG}" != "" -a -f ${ARDOC_CHECKOUTLOG} ]; then
-check_checkout=`${ARDOC_HOME}/ardoc_univ_errortester.pl --checkout ${ARDOC_CHECKOUTLOG}`
+check_checkout=`python3 ${ARDOC_HOME}/ardoc_univ_errortester.py --checkout ${ARDOC_CHECKOUTLOG}`
 fi
 if [ "$check_checkout" != "" ]; then
 echo "ardoc_job_doc: checkout log contains problematic string:" >> ${ARDOC_CHECKOUTLOG}
@@ -117,7 +117,7 @@ echo "COPYING $MR_PATH_TO_EXTBUILDLOG $ARDOC_INSTBUILDLOG "
 [[ -f $MR_PATH_TO_EXTBUILDLOG ]] && cp -a $MR_PATH_TO_EXTBUILDLOG $ARDOC_INSTBUILDLOG
 check_inst=""
 if [ "${ARDOC_INSTBUILDLOG}" != "" -a -f ${ARDOC_INSTBUILDLOG} ]; then
-check_inst=`${ARDOC_HOME}/ardoc_univ_errortester.pl --inst ${ARDOC_INSTBUILDLOG}`
+check_inst=`python3 ${ARDOC_HOME}/ardoc_univ_errortester.py --inst ${ARDOC_INSTBUILDLOG}`
 fi
 if [ "$check_inst" != "" ]; then
 echo "ardoc_job_doc: instbuild log contains problematic string:" >> ${ARDOC_INSTBUILDLOG}
@@ -158,8 +158,8 @@ $ARDOC_HOME/ardoc_db_access_test -b -s "BUILD" >> $dirlog/ardoc_build.logora 2>&
 $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_build_results.py >> $dirlog/ardoc_build.logora 2>&1 
 
 dbuildlog=`dirname $ARDOC_BUILDLOG`
-$ARDOC_HOME/ardoc_cmake_loghandler_new.pl >> ${ARDOC_LOG} 2>&1
-$ARDOC_HOME/ardoc_cmake_loghandler_new_2ndloop.pl -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1
+python3 $ARDOC_HOME/ardoc_cmake_loghandler_new.py >> ${ARDOC_LOG} 2>&1
+python3 $ARDOC_HOME/ardoc_cmake_loghandler_new_2ndloop.py -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1
 python $ARDOC_HOME/ardoc_testdb_generator.py >> ${ARDOC_TESTLOG} 2>&1
 
 ${ARDOC_HOME}/ardoc_univ_progress_informer --phase 1 --step checkout --check "$check_checkout" >> ${ARDOC_CHECKOUTLOG} 2>&1
@@ -174,11 +174,7 @@ ${ARDOC_HOME}/ardoc_progress_informer 4
 $ARDOC_HOME/ardoc_db_access -b -s "ERR" >> $dirlog/ardoc_general.logora 2>&1
 $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_results.py >> $dirtlog/ardoc_test.logora 2>&1
 
-if [ "$ARDOC_STATIC_HTML" == "yes " ]; then
-  ${ARDOC_HOME}/ardoc_webpage --nomail --statichtml >> ${ARDOC_LOG} 2>&1; stat=$?
-else
-  ${ARDOC_HOME}/ardoc_webpage --nomail >> ${ARDOC_LOG} 2>&1; stat=$?
-fi
+${ARDOC_HOME}/ardoc_webpage --nomail >> ${ARDOC_LOG} 2>&1; stat=$?
 
 $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_results.py -c >> $dirtlog/ardoc_test.logora 2>&1
 
