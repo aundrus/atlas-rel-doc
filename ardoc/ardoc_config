@@ -146,22 +146,7 @@ rm -rf ${ardoc_work_area_tmp}
 relnum=0;
 
 ARDOC_PROJECT_ARRAY_S=""
-if [ "${ARDOC_PROJECT_ARRAY}" != "" ]; then
-ar_pj=(${ARDOC_PROJECT_ARRAY})
-el_pj=${#ar_pj[@]}
-if [ "${el_pj}" -gt 0 ]; then
-for ((ii=0 ; ii < el_pj ; ii++ ))
-do
-  sn=`python $ARDOC_HOME/ardoc_project_translator.py ${ar_pj[ii]}`
-  if [ "$ARDOC_PROJECT_ARRAY_S" = "" ]; then
-    ARDOC_PROJECT_ARRAY_S="${sn}"
-  else
-    ARDOC_PROJECT_ARRAY_S="${ARDOC_PROJECT_ARRAY_S} ${sn}"
-  fi
-done
-export ARDOC_PROJECT_ARRAY_S
-fi # if [ "${el_pj}" -gt 0 ]; then
-fi # if [ "${ARDOC_PROJECT_ARRAY}" != "" ]
+[[ "${ARDOC_PROJECT_ARRAY}" != "" ]] && export ARDOC_PROJECT_ARRAY_S="${ARDOC_PROJECT_ARRAY}"
 
 ARDOC_PROJECT_RELNAME_GEN=${ARDOC_PROJECT_RELNAME}
 
