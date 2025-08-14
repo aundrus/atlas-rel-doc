@@ -181,7 +181,7 @@ select projid from projects where projname = :p_item_s order by projid
         rowmax=result[-1]
         projid_current=rowmax[0]
     it1 += 1
-    coma='bash -c \'(ARDOC_PROJECT_NAME='+p_item_s+'; $ARDOC_HOME/ardoc_project_suffix_creator.pl)\''
+    coma='bash -c \'(ARDOC_PROJECT_NAME='+p_item_s+'; python3 $ARDOC_HOME/ardoc_project_suffix_creator.py)\''
     print("ardoc_oracle_tags.py: COMA",coma)
     sff=os.popen(coma,'r')
     sff_res=sff.readline()

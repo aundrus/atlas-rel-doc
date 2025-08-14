@@ -74,7 +74,7 @@ relnstamp=ts.strftime("%Y-%m-%dT%H%M")
 print("ardoc_oracle_starter.py: date: ",ts," release name stamp: ",relnstamp)
 #
 ardoc_http=os.environ.get('ARDOC_HTTP','')
-coma='bash -c \'(unset ARDOC_SUFFIX;ARDOC_PROJECT_NAME=\'PRJ\'; $ARDOC_HOME/ardoc_project_suffix_creator.pl)\''
+coma='bash -c \'(unset ARDOC_SUFFIX;ARDOC_PROJECT_NAME=\'PRJ\'; python3 $ARDOC_HOME/ardoc_project_suffix_creator.py)\''
 sff=os.popen(coma,'r')
 ardoc_suffix=sff.readline()
 #    print "SFF",ardoc_suffix

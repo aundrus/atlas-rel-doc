@@ -209,8 +209,8 @@ if [ ! -f ${MR_PATH_TO_EXTBUILD}/cmake_build.log ]; then
 fi
 
 export ARDOC_SUFFIX_PREPEND=` echo ${ARDOC_NIGHTLY_NAME} | sed 's/[^a-zA-Z0-9_]//g'`
-suff1=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="PRJ"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
-suff2=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="$proj"; unset ARDOC_SUFFIX; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
+suff1=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="PRJ"; unset ARDOC_SUFFIX; python3 ${ARDOC_HOME}/ardoc_project_suffix_creator.py)`
+suff2=`/bin/sh -c :;(export ARDOC_PROJECT_NAME="$proj"; unset ARDOC_SUFFIX; python3 ${ARDOC_HOME}/ardoc_project_suffix_creator.py)`
 suff=`echo $suff1 | sed 's/PRJ//'`
 
 echo "ardoc_job_doc: INFO: ARDOC preliminary env:" >> $ARDOC_JOB_LOG

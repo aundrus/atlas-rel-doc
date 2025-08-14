@@ -36,7 +36,7 @@ export ARDOC_MAIL_QA_TESTS="no"
 sffx="_${ARDOC_PROJECT_RELNUMB_COPY}"
 if [ "${ARDOC_PROJECT_RELNUMB_COPY}" = "" ]; then sffx=""; fi
 
-${ARDOC_HOME}/ardoc_errorhandler.pl; stat=$?
+python3 ${ARDOC_HOME}/ardoc_errorhandler.py; stat=$?
 
 cd ${prevdir}
 exit $stat

@@ -120,7 +120,7 @@ fi
 ##fi
 
 #CALCULATING ARDOC_SUFFIX
-ARDOC_SUFFIX_1=`/bin/sh -c :;(unset ARDOC_SUFFIX; source ${ARDOC_WORK_AREA}/cache_scan_result > /dev/null 2>&1; ${ARDOC_HOME}/ardoc_project_suffix_creator.pl)`
+ARDOC_SUFFIX_1=`/bin/sh -c :;(unset ARDOC_SUFFIX; source ${ARDOC_WORK_AREA}/cache_scan_result > /dev/null 2>&1; python3 ${ARDOC_HOME}/ardoc_project_suffix_creator.py)`
 if [ "$ARDOC_SUFFIX" != "" -a "$ARDOC_SUFFIX_1" != "WORK_RELEASE" ]; then
 if [ "$ARDOC_SUFFIX" != "$ARDOC_SUFFIX_1" ]; then
   echo "ardoc_config: error: ardoc_suffix determined by ardoc_config is different in the environment: $ARDOC_SUFFIX XX $ARDOC_SUFFIX_1" 

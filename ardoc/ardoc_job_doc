@@ -141,16 +141,16 @@ if [ "${ARDOC_PROJECT_NUMBER}" = "" -o "${ARDOC_PROJECT_NUMBER}" -eq 0 -o "${ARD
   echo "ardoc_job_doc: END ardoc_oracle_starter.sh -n ${ARDOC_NIGHTLY_NAME} -c ${ARDOC_ARCH}" >> $dirlog/ardoc_general.logora
 fi
 
-python $ARDOC_HOME/ardoc_container_extractor_monol.py >> ${ARDOC_LOG} 2>&1
+python3 $ARDOC_HOME/ardoc_container_extractor_monol.py >> ${ARDOC_LOG} 2>&1
 
-${ARDOC_HOME}/ardoc_progress_informer 0 "$date_start_config"
+python3 ${ARDOC_HOME}/ardoc_progress_informer.py 0 "$date_start_config"
 
 $ARDOC_HOME/ardoc_db_access -b -s "TOOLINIT" >> $dirlog/ardoc_general.logora 2>&1
-${ARDOC_HOME}/ardoc_progress_informer 1
+python3 ${ARDOC_HOME}/ardoc_progress_informer.py 1
 $ARDOC_HOME/ardoc_db_access -b -s "CHECKOUT" >> $dirlog/ardoc_general.logora 2>&1
-${ARDOC_HOME}/ardoc_progress_informer 2
+python3 ${ARDOC_HOME}/ardoc_progress_informer.py 2
 $ARDOC_HOME/ardoc_db_access -b -s "PROJECTCONF" >> $dirlog/ardoc_general.logora 2>&1
-${ARDOC_HOME}/ardoc_progress_informer 3
+python3 ${ARDOC_HOME}/ardoc_progress_informer.py 3
 echo "ardoc_job_doc: PYTHONPATH = $PYTHONPATH"
 echo "ardoc_job_doc: PYTHONPATH = $PYTHONPATH" >> $dirlog/ardoc_build.logora
 $ARDOC_HOME/ardoc_db_access_test -b -s "BUILD" >> $dirlog/ardoc_build.logora 2>&1
@@ -160,13 +160,13 @@ $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_build_resu
 dbuildlog=`dirname $ARDOC_BUILDLOG`
 python3 $ARDOC_HOME/ardoc_cmake_loghandler.py >> ${ARDOC_LOG} 2>&1
 python3 $ARDOC_HOME/ardoc_cmake_loghandler_2ndloop.py -l $dbuildlog/ardoc_build.loglog >> ${ARDOC_LOG} 2>&1
-python $ARDOC_HOME/ardoc_testdb_generator.py >> ${ARDOC_TESTLOG} 2>&1
+python3 $ARDOC_HOME/ardoc_testdb_generator.py >> ${ARDOC_TESTLOG} 2>&1
 
-${ARDOC_HOME}/ardoc_univ_progress_informer --phase 1 --step checkout --check "$check_checkout" >> ${ARDOC_CHECKOUTLOG} 2>&1
-${ARDOC_HOME}/ardoc_univ_progress_informer --phase 1 --step conf --check "$check_conf" >> ${ARDOC_CONFBUILDLOG} 2>&1
-${ARDOC_HOME}/ardoc_univ_progress_informer --phase 1 --step inst --check "$check_inst" >> ${ARDOC_INSTBUILDLOG} 2>&1
+python3 ${ARDOC_HOME}/ardoc_univ_progress_informer.py --phase 1 --step checkout --check "$check_checkout" >> ${ARDOC_CHECKOUTLOG} 2>&1
+python3 ${ARDOC_HOME}/ardoc_univ_progress_informer.py --phase 1 --step conf --check "$check_conf" >> ${ARDOC_CONFBUILDLOG} 2>&1
+python3 ${ARDOC_HOME}/ardoc_univ_progress_informer.py --phase 1 --step inst --check "$check_inst" >> ${ARDOC_INSTBUILDLOG} 2>&1
 
-${ARDOC_HOME}/ardoc_progress_informer 4
+python3 ${ARDOC_HOME}/ardoc_progress_informer.py 4
 #$ARDOC_HOME/ardoc_db_access -e -s "CO"
 #$ARDOC_HOME/ardoc_db_access -e -s "CB" 
 #$ARDOC_HOME/ardoc_db_access -e -s "IB"
@@ -178,8 +178,8 @@ ${ARDOC_HOME}/ardoc_webpage --nomail >> ${ARDOC_LOG} 2>&1; stat=$?
 
 $ARDOC_HOME/ardoc_oracle_wrapper.sh 3 python $ARDOC_HOME/ardoc_oracle_results.py -c >> $dirtlog/ardoc_test.logora 2>&1
 
-${ARDOC_HOME}/ardoc_progress_informer 44
-${ARDOC_HOME}/ardoc_progress_informer 10
+python3 ${ARDOC_HOME}/ardoc_progress_informer.py 44
+python3 ${ARDOC_HOME}/ardoc_progress_informer.py 10
 
 #dir_dict=`dirname $CI_RESULTS_DICT`
 #if [ "${dir_dict}" != "" ]; then
@@ -190,7 +190,7 @@ ${ARDOC_HOME}/ardoc_progress_informer 10
 #fi
 #fi
 ${ARDOC_HOME}/ardoc_oracle_wrapper_pythonpath.sh 2 python $ARDOC_HOME/ardoc_oracle_update_jobs_table.py >> $dirlog/ardoc_general.logora 2>&1
-python ${ARDOC_HOME}/ardoc_process_oracle_results.py >> $dirlog/ardoc_general.logora 2>&1
+python3 ${ARDOC_HOME}/ardoc_process_oracle_results.py >> $dirlog/ardoc_general.logora 2>&1
 ${ARDOC_HOME}/ardoc_oracle_wrapper.sh 2 python ${ARDOC_HOME}/ardoc_oracle_hbeat.py --end >> $dirlog/ardoc_general.logora 2>&1
 
 if [ "$stat" -ne 0 ]; then 

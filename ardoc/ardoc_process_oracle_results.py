@@ -33,7 +33,7 @@ for v_dir in a_dir:
   for ifile in os.listdir(v_dir):
     if ifile.endswith('.logora'):
       print("ardoc_process_oracle_results.py: processing ",ifile)  
-      coma='bash -c \'('+ardoc_home+os.sep+'ardoc_oracle_errortester.pl'+' '+v_dir+os.sep+ifile+')\''
+      coma='bash -c \'(python3 '+ardoc_home+os.sep+'ardoc_oracle_errortester.py'+' '+v_dir+os.sep+ifile+')\''
 #      print "COMA",coma
       sff=os.popen(coma,'r')
       strng=sff.readline().strip()
