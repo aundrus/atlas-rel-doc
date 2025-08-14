@@ -21,6 +21,7 @@ import argparse
 from pathlib import Path
 from urllib.parse import quote
 import html
+import shutil
 
 def header_print(file_handle, problem_level, test_name):
     """Print HTML header with appropriate styling based on problem level."""
@@ -550,8 +551,18 @@ def main():
                     break
     
     # Output results
+    problems = 0
+    mess = ""
+    linkline = 0
+    linkvalue = ""
+    
     if eeee:
         # Error found
+        problems = 2
+        mess = f"Error pattern found: {eeee}"
+        linkline = line_ee
+        linkvalue = line_ee_value
+        
         if args.specformat:
             print(f"G {compname} {ardoc_testlogdir} {eeee}", end="")
         else:
@@ -566,7 +577,11 @@ def main():
     
     elif ssss:
         # Missing success pattern
+        problems = 2
         ssss1 = ssss.replace("(ABSENSE OF)", "")
+        mess = f"Required success pattern not found: {ssss1}"
+        linkline = 0
+        
         if args.specformat:
             print(f"G {compname} {ardoc_testlogdir} {ssss}", end="")
         else:
@@ -581,6 +596,11 @@ def main():
     
     elif wwww:
         # Warning found
+        problems = 1
+        mess = f"Serious warning pattern found: {wwww}"
+        linkline = line_ww
+        linkvalue = line_ww_value
+        
         if args.specformat:
             print(f"W {compname} {ardoc_testlogdir} {wwww}", end="")
         else:
@@ -595,7 +615,11 @@ def main():
     
     elif ssww:
         # Missing warning success pattern
+        problems = 1
         ssww1 = ssww.replace("(ABSENSE OF)", "")
+        mess = f"Essential pattern not found: {ssww1}, this triggers serious warning"
+        linkline = 0
+        
         if args.specformat:
             print(f"W {compname} {ardoc_testlogdir} {ssww}", end="")
         else:
@@ -610,6 +634,11 @@ def main():
     
     elif wwww_minor:
         # Minor warning found
+        problems = 0.5
+        mess = f"Minor warning pattern found: {wwww_minor}"
+        linkline = line_mm
+        linkvalue = line_mm_value
+        
         if args.specformat:
             print(f"M {compname} {ardoc_testlogdir} {wwww_minor}", end="")
         else:
@@ -629,9 +658,217 @@ def main():
             print(f"         Logfiles of {type_mode} {compname} looks OK")
             print("(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)") 
     
-    # HTML generation would go here if not args.short
-    # This is a complex section involving file processing and HTML generation
-    # For now, we'll skip the HTML generation part for brevity
+    # HTML Generation
+    if not args.short and problems > 0:
+        # Generate HTML file
+        ardoc_testlogdirbase = ardoc_testlogdir.name
+        filebase1 = Path(filename).name
+        filehtml = ardoc_testlogdir / f"{compname}.html"
+        
+        # Prepare message for HTML
+        mess2 = ""
+        if linkline != 0:
+            mess2 = f'&nbsp;<BR>&nbsp;&nbsp;&nbsp;&nbsp;problematic line: </B><BR> &nbsp;&nbsp;&nbsp; <A class=small href="#prblm">{html.escape(linkvalue)}</A><BR><B>'
+        
+        aid_message_html = f"""
+<td class=ttl><EM><B>{mess}</B></EM>
+</td>
+</tr>
+</table>
+</DIV>
+<DIV id=hdr>
+<B>
+    {mess2}
+    &nbsp;&nbsp;&nbsp;&nbsp;<A href="#end">Link to the last line</A> <BR>
+    &nbsp;<BR>
+</B></DIV>
+"""
+        
+        try:
+            with open(filehtml, 'w', encoding='utf-8') as fg:
+                # Write HTML header
+                header_print(fg, problems, f"{type_mode} {compname}")
+                
+                # Write message HTML
+                fg.write(aid_message_html)
+                fg.write('<div id=hdr1>\n')
+                
+                if not args.testtesting and not args.qatesting:
+                    fg.write('<b><i>Placeholder for a link to GitLab</i></b><BR>\n')
+                
+                fg.write(f'<b>Original log file:</b><CODE> {filename} </CODE><BR>\n')
+                
+                # Web links (if configured)
+                if ardoc_web_home:
+                    webloc = f"{ardoc_web_home}/{ardoc_project_relname_copy}/ARDOC_area/{ardoc_testlogdirbase}/{filebase1}"
+                
+                if ardoc_webpage:
+                    ardoc_nightly_name = os.environ.get("ARDOC_NIGHTLY_NAME", "")
+                    ardoc_arch = os.environ.get("ARDOC_ARCH", "")
+                    ardoc_project_relnumb_copy = os.environ.get("ARDOC_PROJECT_RELNUMB_COPY", "")
+                    
+                    websum_d = f"http://atlas-nightlies-browser.cern.ch/~platinum/nightlies/info?tp={type_in_url}&nightly={ardoc_nightly_name}&rel={ardoc_project_relname_copy}&ar={ardoc_arch}&proj={ardoc_project_name}"
+                    websum = f"{ardoc_webpage}/ardoc_{type_in_html}summary_{ardoc_project_relnumb_copy}.html"
+                
+                fg.write('</div>\n <P><PRE>\n')
+                
+                # Set up line limits for different log types
+                total_ln = 5000
+                first_part = 3000
+                middle_part1 = 25
+                middle_part2 = 25
+                last_part = 2000
+                
+                if args.testtesting:
+                    mr_training_domain = os.environ.get("MR_TRAINING_DOMAIN", "")
+                    mr_current_git_branch = os.environ.get("MR_CURRENT_GIT_BRANCH", "")
+                    
+                    if mr_training_domain:
+                        fg.write(f"Note: this MR training job probes domain {mr_training_domain}, git branch {mr_current_git_branch}\n")
+                    
+                    if "unit-tests" in filename:
+                        fg.write("Note: there is limit of 75000 lines for this logfile. Excess lines (if any) are truncated.\n")
+                        total_ln = 75000
+                        first_part = 40000
+                        middle_part1 = 250
+                        middle_part2 = 250
+                        last_part = 35000
+                    else:
+                        fg.write("Note: there is limit of 20000 lines for this logfile. Excess lines (if any) are truncated.\n")
+                        total_ln = 20000
+                        first_part = 12000
+                        middle_part1 = 100
+                        middle_part2 = 100
+                        last_part = 8000
+                
+                # Calculate allowed line ranges
+                allowed_ranges = []
+                if line_t <= total_ln:
+                    allowed_ranges.append((0, total_ln))
+                else:
+                    allowed_ranges.append((0, first_part))
+                    brd = line_t - last_part + 1
+                    allowed_ranges.append((brd, line_t))
+                    
+                    if linkline != 0:
+                        brd_e1 = max(0, linkline - middle_part1)
+                        brd_e2 = min(line_t, linkline + middle_part2)
+                        allowed_ranges.append((brd_e1, brd_e2))
+                
+                # Process log file for HTML output
+                ncount_line = 0
+                first_line = "ExecTest.stdout:"
+                first_line_ok = True
+                first_arr = []
+                last_line = "qmtest.target:"
+                last_line_sea = line_t - 5
+                first_line_sea = 3
+                
+                if first_line_sea >= line_t - 1:
+                    first_line_sea = line_t - 1
+                
+                line_ok_2 = True
+                ncount_s = 0
+                
+                try:
+                    with open(filename, 'r', encoding='utf-8', errors='ignore') as fb:
+                        for line_content in fb:
+                            ncount_line += 1
+                            line_ok_1 = True
+                            line_ok = False
+                            
+                            # Handle special time stamps
+                            if "qmtest.end_time" in line_content or "qmtest.start_time" in line_content:
+                                line_content = line_content.rstrip() + " (GMT time)\n"
+                            
+                            # Handle first line detection
+                            if ncount_line < first_line_sea and first_line_ok:
+                                line_ok_1 = False
+                                line_nosp = line_content.replace(" ", "").strip()
+                                if line_nosp == first_line:
+                                    first_line_ok = False
+                                first_arr.append(line_content)
+                            
+                            if ncount_line == first_line_sea and first_line_ok:
+                                first_line_ok = False
+                                for f_line in first_arr:
+                                    if ("CI_TEST" not in f_line or "href" not in f_line) and ("test" not in f_line or "tailoring" not in f_line or "href" not in f_line):
+                                        encode_line = html.escape(f_line)
+                                    else:
+                                        encode_line = f_line
+                                    fg.write(encode_line)
+                            
+                            # Handle last line detection
+                            if ncount_line > last_line_sea:
+                                line_nosp = line_content.replace(" ", "").strip()
+                                if line_nosp == last_line:
+                                    line_ok_2 = False
+                            
+                            # Check if line should be included
+                            for start, end in allowed_ranges:
+                                if start <= ncount_line <= end:
+                                    line_ok = True
+                                    break
+                            
+                            if not line_ok:
+                                ncount_s = 0
+                            
+                            if line_ok:
+                                if ncount_line != linkline:
+                                    ncount_s += 1
+                                    if ncount_s == 1 and ncount_line > 1:
+                                        fg.write("""<DIV ID=hdr>................................................................<BR>
+.....LINES TRUNCATED <BR>
+.....first """ + str(first_part) + """ lines, bottom """ + str(last_part) + """ lines <BR>
+.....as well as lines around error messsage are displayed <BR>
+................................................................
+</DIV>
+""")
+                                    
+                                    if line_ok_1 and line_ok_2:
+                                        if ("CI_TEST" not in line_content or "href" not in line_content) and ("test" not in line_content or "tailoring" not in line_content or "href" not in line_content):
+                                            escp = html.escape(line_content)
+                                        else:
+                                            escp = line_content
+                                        fg.write(escp)
+                                else:
+                                    # This is the problematic line
+                                    if ("CI_TEST" not in line_content or "href" not in line_content) and ("test" not in line_content or "tailoring" not in line_content or "href" not in line_content):
+                                        escp = html.escape(line_content)
+                                    else:
+                                        escp = line_content
+                                    fg.write(f'<div id="prblm">{escp}</div>')
+                                    ncount_s += 1
+                                
+                                if ncount_line == line_t:
+                                    fg.write("  </PRE>\n")
+                                    fg.write('  <div id="end">END OF LOGFILE</div>')
+                
+                except Exception as e:
+                    fg.write(f"Error processing log file: {e}\n")
+                
+                # Close HTML
+                fg.write("\n  </body>\n  </html>\n")
+        
+        except Exception as e:
+            print(f"Error generating HTML file: {e}", file=sys.stderr)
+        
+        # Copy HTML file to web directory
+        if ardoc_webdir and filehtml.exists():
+            filehtml_base = filehtml.name
+            
+            if args.testtesting:
+                copy_html = Path(ardoc_webdir) / f"ARDOC_TestLog_{ardoc_project_relname_copy}" / filehtml_base
+            elif args.qatesting:
+                copy_html = Path(ardoc_webdir) / f"ARDOC_QALog_{ardoc_project_relname_copy}" / filehtml_base
+            else:
+                copy_html = Path(ardoc_webdir) / f"ARDOC_Log_{ardoc_project_relname_copy}" / filehtml_base
+            
+            try:
+                copy_html.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(filehtml, copy_html)
+            except Exception as e:
+                print(f"Warning: Could not copy HTML to web directory: {e}", file=sys.stderr)
     
     sys.exit(0)
 
