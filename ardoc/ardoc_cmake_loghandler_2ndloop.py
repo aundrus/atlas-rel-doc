@@ -21,7 +21,7 @@ def main():
     # --- Environment Variables ---
     ardoc_work_area = os.environ.get("ARDOC_WORK_AREA")
     ardoc_buildlog = os.environ.get("ARDOC_BUILDLOG")
-    ardoc_dbfile_path = os.environ.get("ARDOC_DBFILE")
+    ardoc_dbfile_path = os.environ.get("ARDOC_DBFILE_GEN")
     ardoc_project_name = os.environ.get("ARDOC_PROJECT_NAME")
 
     if not all([ardoc_work_area, ardoc_buildlog, ardoc_dbfile_path, ardoc_project_name]):
@@ -31,7 +31,8 @@ def main():
     makelog_path = Path(args.infile if args.infile else ardoc_buildlog)
     logdir = makelog_path.parent
     dbfile_basename = Path(ardoc_dbfile_path).name
-    dbfilegen = Path(ardoc_work_area) / dbfile_basename
+    dbfile_basename_res = f"{dbfile_basename}_res"
+    dbfilegen = Path(ardoc_work_area) / dbfile_basename_res
     
     remnants_file = logdir / f"REMNANTS_2ndloop.log{args.file_suffix}"
     remnants_file.write_text("=" * 75 + "\n")
