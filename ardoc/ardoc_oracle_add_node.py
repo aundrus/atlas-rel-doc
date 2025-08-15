@@ -23,7 +23,7 @@ if name == "":
     print(("ardoc_oracle_add_node.py: Error: node ",name," is not defined"))  
     sys.exit(1)
 
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
 cFN="/afs/cern.ch/atlas/software/dist/nightlies/cgumpert/TC/OW_crdntl"
 lne=open(cFN,'r')
 lne_res=lne.readline()

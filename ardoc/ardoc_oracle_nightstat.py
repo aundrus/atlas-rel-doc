@@ -35,7 +35,7 @@ if 'HOME' in os.environ : home=os.environ['HOME']
 if nname == "NONE":
     sys.stderr.write("ardoc_oracle_nightstat.py: Error: ARDOC NIGHTLY NAME is not defined\n")  
     sys.exit(1)
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
 ts_j = datetime.datetime.now()
 cFN="/afs/cern.ch/atlas/software/dist/nightlies/cgumpert/TC/OR_crdntl"
 if opt_stat == "set": cFN="/afs/cern.ch/atlas/software/dist/nightlies/cgumpert/TC/OW_crdntl"

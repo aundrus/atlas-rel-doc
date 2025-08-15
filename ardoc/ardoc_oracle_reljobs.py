@@ -18,7 +18,7 @@ if 'ARDOC_NIGHTLY_NAME' in os.environ : nname=os.environ['ARDOC_NIGHTLY_NAME']
 if nname == "":
     print("ardoc_oracle_reljobs.py: Error: ARDOC_NIGHTLY_NAME is not defined")  
     sys.exit(1)
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
 ardoc_gen_config_area=os.environ.get('ARDOC_GEN_CONFIG_AREA','')
 parray=os.environ.get('ARDOC_PROJECT_ARRAY','')
 paname=os.environ.get('ARDOC_PROJECT_NAME','')

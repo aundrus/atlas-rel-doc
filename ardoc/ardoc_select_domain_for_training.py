@@ -17,7 +17,7 @@ home=""
 warea=""
 nname=""
 if 'HOME' in os.environ : home=os.environ['HOME']
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
 source_dir=os.environ.get('SOURCE_DIR','')
 if 'PROJECT' not in os.environ : logging.warning("ardoc_select_domain_for_training: Warning: PROJECT is not defined in env, assuming Athena")
 proj_select=os.environ.get('PROJECT','Athena')

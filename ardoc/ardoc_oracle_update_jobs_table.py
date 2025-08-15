@@ -142,7 +142,7 @@ if jid == '':
 
 print("ardoc_update_jobs_table: JID read:",jid,"from:",fjid)
 
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()    
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()    
 cFN="/afs/cern.ch/atlas/software/dist/nightlies/cgumpert/TC/OW_crdntl"
 lne=open(cFN,'r')
 lne_res=lne.readline()

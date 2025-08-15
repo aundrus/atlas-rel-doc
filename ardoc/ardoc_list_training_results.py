@@ -18,7 +18,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 #print ("Oracle client: " + str(cx_Oracle.clientversion()).replace(', ','.'))
 home=""
 if 'HOME' in os.environ : home=os.environ['HOME']
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
 projects=['Athena','AthSimulation']
 branches=['23.0','main']
 ts_now = datetime.datetime.now()

@@ -17,7 +17,7 @@ if 'ARDOC_NIGHTLY_NAME' in os.environ : nname=os.environ['ARDOC_NIGHTLY_NAME']
 if nname == "":
     print("ardoc_oracle_tags.py: Error: ARDOC_NIGHTLY_NAME is not defined")  
     sys.exit(1)
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
 domain_map={}
 domain_map['^Control/.*$']='Core'
 domain_map['^Event/.*$']='Core'

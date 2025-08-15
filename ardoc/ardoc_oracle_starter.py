@@ -21,7 +21,7 @@ if 'ARDOC_NIGHTLY_NAME' in os.environ : nname=os.environ['ARDOC_NIGHTLY_NAME']
 if nname == "":
     print("ardoc_oracle_starter.py: Error: ARDOC_NIGHTLY_NAME is not defined")  
     sys.exit(1)
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
 if 'ARDOC_NIGHTLY_GROUP' in os.environ : ngroup=os.environ['ARDOC_NIGHTLY_GROUP']
 if 'ARDOC_VAL_MODE' in os.environ : valmode=os.environ['ARDOC_VAL_MODE']
 if 'ARDOC_INC_BUILD' in os.environ : incrmode=os.environ['ARDOC_INC_BUILD']

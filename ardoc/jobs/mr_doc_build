@@ -78,7 +78,7 @@ export ARDOC_GEN_CONFIG_AREA=$dirNicosHome/ardoc_local_gen_config_area
 [[ ! -d  $dirNicosHome/ardoc_local_gen_config_area ]] && mkdir $dirNicosHome/ardoc_local_gen_config_area
 export ARDOC_ATLAS_RELEASE='N/A'
 export ARDOC_ATLAS_ALT_RELEASE='N/A'
-export ARDOC_ORACLE_SCHEMA="ATLAS_ARDOC"
+export ARDOC_ORACLE_SCHEMA="ATLAS_NICOS"
 export ARDOC_NIGHTLY_ROLE='master'
 # END FOR ORACLE SCRIPTS COMPATIBILITY
 [[ "$ARDOC_PROJECT_NAME" = "" ]] && export ARDOC_PROJECT_NAME="Athena"

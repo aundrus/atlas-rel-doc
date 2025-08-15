@@ -18,7 +18,7 @@ home=""
 nname=""; paname=""; ardoc_arch=""
 mr_id=""; mr_iid=""; ci_results_file=""
 if 'HOME' in os.environ : home=os.environ['HOME']
-oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_ARDOC').strip()
+oracle_schema=os.environ.get('ARDOC_ORACLE_SCHEMA','ATLAS_NICOS').strip()
 ardoc_gen_config_area=os.environ.get('ARDOC_GEN_CONFIG_AREA','')
 projn=os.environ.get('ARDOC_PROJECT_NAME','')
 ardoc_home=os.environ.get('ARDOC_HOME','')
