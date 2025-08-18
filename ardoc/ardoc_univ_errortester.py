@@ -86,7 +86,7 @@ def main():
         ARDOC_LOGDIRBASE = Path(ARDOC_LOGDIR).name
     
     # Check arguments
-    if len(sys.argv) < 1 or len(sys.argv) > 2:
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
         print("ardoc_errortester:", file=sys.stderr)
         print("One or two arguments required: name of logfile and --conf or --inst option", file=sys.stderr)
         sys.exit(2)
