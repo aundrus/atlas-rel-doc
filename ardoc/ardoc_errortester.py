@@ -91,7 +91,7 @@ def main():
     
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Analyze log files for errors and warnings', add_help=False)
-    parser.add_argument('-s', '--short', action='store_true', help='Short format (no HTML generation)')
+    parser.add_argument('-s', '--short', action='store_true', help='Short format and HTML generation')
     parser.add_argument('-e', '--specformat', action='store_true', help='Special format (G|W|M output)')
     parser.add_argument('-t', '--testtesting', action='store_true', help='Test testing mode')
     parser.add_argument('-q', '--qatesting', action='store_true', help='QA testing mode')
@@ -659,7 +659,7 @@ def main():
             print("(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)(..)") 
     
     # HTML Generation
-    if not args.short and problems > 0:
+    if args.short:
         # Generate HTML file
         ardoc_testlogdirbase = ardoc_testlogdir.name
         filebase1 = Path(filename).name
