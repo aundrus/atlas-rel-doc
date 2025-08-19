@@ -102,15 +102,19 @@ def ardoc_testhandler(par):
     
     # Read all log files
     try:
-        allfiles = [f for f in os.listdir(ARDOC_TESTLOGDIR) if f.endswith('.log')]
-        list91 = [f for f in allfiles if not re.match(r'^ardoc_.+$', f)]
-        listfiles = [f for f in list91 if not f.endswith('.logloglog')]
-        
-        # Sort files using compar function
-        listfiles = sorted(listfiles, key=compar)
+       allfiles = [
+          f for f in os.listdir(ARDOC_TESTLOGDIR)
+          if re.match(r"^.+log$", f)
+       ]
     except OSError:
-        print(f"Error reading directory {ARDOC_TESTLOGDIR}")
-        return
+       print(f"Error reading directory {ARDOC_TESTLOGDIR}") 
+       allfiles = []
+
+    print("LIST ALL FILES in ",ARDOC_TESTLOGDIR," : ", allfiles)
+
+    list91 = [f for f in allfiles if not f.startswith("ardoc_")]
+    listfiles = [f for f in list91 if not f.endswith('.logloglog')]
+    listfiles = sorted(listfiles, key=compar)
     
     # Read test database
     test_db = []
