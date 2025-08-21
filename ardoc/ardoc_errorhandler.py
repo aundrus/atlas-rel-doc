@@ -240,10 +240,12 @@ def ardoc_testhandler(par):
         if (lower_NFEA not in ["true", "yes"] and "unit-tests" not in testname):
             # Light error analysis
             cmd = ["python3", f"{ARDOC_HOME}/ardoc_errortester.py", "-elst", testname, release]
+            print("ERRORTESTER(lighttest) ",cmd)
             print(f" light test_tester: {testname}_ERROR_MESSAGE {release} : {exitcode}")
         else:
             # Full error analysis
             cmd = ["python3", f"{ARDOC_HOME}/ardoc_errortester.py", "-est", testname, release]
+            print("ERRORTESTER(fullttest) ",cmd)
             if lower_NFEA in ["true", "yes"]:
                 print(f" full test_tester: {testname}_ERROR_MESSAGE {release} : {exitcode}")
             else:
@@ -679,6 +681,7 @@ def main():
             
             # Run error tester on package
             cmd = ["python3", f"{ARDOC_HOME}/ardoc_errortester.py", "-es", pkgn, release, filename, package]
+            print("ERRORTESTER(comp) ",cmd)
             try:
                 result = subprocess.run(cmd, capture_output=True, text=True, check=False)
                 strng1 = result.stdout.strip().split('\n')

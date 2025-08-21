@@ -112,6 +112,7 @@ def main():
     ardoc_webdir = os.environ.get("ARDOC_WEBDIR", "")
     ardoc_web_home = os.environ.get("ARDOC_WEB_HOME", "")
     ardoc_webpage = os.environ.get("ARDOC_WEBPAGE", "")
+    ardoc_version = os.environ.get("ARDOC_VERSION", "")
     
     # Determine mode and validate arguments
     if not args.testtesting and not args.qatesting:
@@ -128,8 +129,8 @@ def main():
             
         compname = args.args[0]
         release = args.args[1]
-        filename = args.args[2]
-        pkgname_full = args.args[3]
+        tags_filename = args.args[2] if len(args.args) > 2 else ""  #obsolete
+        pkgname_full = args.args[3]  if len(args.args) > 3 else "" 
     else:
         # Test mode
         type_in_url = "t"
@@ -148,7 +149,7 @@ def main():
             
         compname = args.args[0]
         release = args.args[1]
-        filename = compname  # For test mode, filename is the test name
+        tags_filename = compname  # obsolete
         pkgname_full = ""
     
     # Extract package name
@@ -338,18 +339,50 @@ def main():
     if args.testtesting or args.qatesting:
         s_count = [1] + [0] * (len(e_test_success) - 1)
         s_w_count = [0] * 8
+
+    # Find log files                                                                                                             
+    try:
+        allfiles = os.listdir(ardoc_testlogdir)
+    except OSError:
+        allfiles = []
+
+#    print("ardoc_testlogdir= ",ardoc_testlogdir, file=sys.stderr)    
+#    print(allfiles, file=sys.stderr)
+    stg = f"{compname}.loglog"
+    list_files = [f for f in allfiles if f == stg]
     
-    # Process log file
-    if not Path(filename).exists():
+    if list_files:
+        # Sort by modification time, newest first
+        list_files.sort(key=lambda x: os.path.getmtime(os.path.join(ardoc_testlogdir, x)), reverse=True)
+        listfiles = list_files[0]
+    else:
+        listfiles = None
+#    print(listfiles, file=sys.stderr)
+    if listfiles:
+        lineT = 0
+        file_path = os.path.join(ardoc_testlogdir, listfiles)
+        filebase1 = os.path.basename(file_path)
+        filedir = os.path.dirname(file_path)
+        filebase = filebase1
+
+        # Remove extension for HTML file_path
+        
+        filebase_parts = filebase.split('.')
+        if len(filebase_parts) > 1:
+            filebase_parts.pop()
+            filebase = '.'.join(filebase_parts)
+        filehtml = os.path.join(filedir, f"{filebase}.html")    
+    else:
         if args.specformat:
-            print(f"G {compname} {ardoc_testlogdir} logfile not found: {filename}", end="")
+            print(f"G {compname} {ardoc_testlogdir} logfile not found: {file_path}", end="")
         else:
-            print(f"no build logfile: {filename}")
+            print(f"no build logfile: {file_path}")
         sys.exit(10)
+#    print("FPATH ",file_path, file=sys.stderr)
     
     line_t = 0
     try:
-        with open(filename, 'r', encoding='utf-8', errors='ignore') as f:
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             for line_num, line in enumerate(f, 1):
                 line_t = line_num
                 line = line.strip()
@@ -552,7 +585,9 @@ def main():
     
     # Output results
     problems = 0
-    mess = ""
+    mess = "No problems found"
+    if args.light:
+        mess = "Test succeeded, based on the exit code (error highlighting off)"
     linkline = 0
     linkvalue = ""
     
@@ -568,7 +603,7 @@ def main():
         else:
             print("=" * 68)
             print(f" {type_mode} {compname} has problem. See")
-            print(f" {filename}")
+            print(f" {file_path}")
             print(f" for pattern(s)  ------ {eeee} -----")
             print("=" * 68)
         
@@ -587,7 +622,7 @@ def main():
         else:
             print("=" * 68)
             print(f" {type_mode} {compname} has problem. See")
-            print(f" {filename}")
+            print(f" {file_path}")
             print(f" for pattern(s)  ------ {ssss} -----")
             print("=" * 68)
         
@@ -606,7 +641,7 @@ def main():
         else:
             print("=" * 68)
             print(f" {type_mode} {compname} has warning. See")
-            print(f" {filename}")
+            print(f" {file_path}")
             print(f" for pattern(s)  ------ {wwww} -----")
             print("=" * 68)
         
@@ -625,7 +660,7 @@ def main():
         else:
             print("=" * 68)
             print(f" {type_mode} {compname} has warning. See")
-            print(f" {filename}")
+            print(f" {file_path}")
             print(f" for pattern(s)  ------ {ssww} -----")
             print("=" * 68)
         
@@ -644,7 +679,7 @@ def main():
         else:
             print("=" * 68)
             print(f" {type_mode} {compname} has minor warning. See")
-            print(f" {filename}")
+            print(f" {file_path}")
             print(f" for pattern(s)  ------ {wwww_minor} -----")
             print("=" * 68)
         
@@ -662,8 +697,42 @@ def main():
     if args.short:
         # Generate HTML file
         ardoc_testlogdirbase = ardoc_testlogdir.name
-        filebase1 = Path(filename).name
-        filehtml = ardoc_testlogdir / f"{compname}.html"
+
+        optn = f"{contname} {pkgname} build"
+        if args.testtesting or args.qatesting:
+            f_contname = contname.split("__")
+            contname1 = f_contname[0]
+            inddd = len(f_contname) - 1
+            tname = ""
+            if inddd > 0:
+                tname = f_contname[inddd]
+
+            f_tname = tname.split("_")
+            ft1 = len(f_tname) - 1
+            if ft1 > 0:
+                if re.match(r'^\w\s*$', f_tname[ft1]):
+                    f_tname.pop()
+                    tname = "_".join(f_tname)
+
+            f_contname1 = contname1.split("_")
+            fcnt1 = len(f_contname1) - 1
+            tnumber = ""
+            if fcnt1 > 0:
+                fcnt9 = f_contname1[fcnt1]
+                if re.match(r'^\d\d$', fcnt9):
+                    tnumber = f_contname1.pop()
+                    tnumber = f"#{tnumber}"
+                    contname1 = "_".join(f_contname1)
+
+            fcnt1 = len(f_contname1) - 1
+            if fcnt1 >= 0:
+                fcnt9 = f_contname1[fcnt1]
+                if fcnt9.lower() == tname.lower():
+                    tname = ""
+
+            optn = f"{contname1} {tnumber} {tname} test"
+            if re.search(r'test$', tname, re.IGNORECASE):
+                optn = f"{contname1} {tnumber} {tname}"
         
         # Prepare message for HTML
         mess2 = ""
@@ -671,6 +740,17 @@ def main():
             mess2 = f'&nbsp;<BR>&nbsp;&nbsp;&nbsp;&nbsp;problematic line: </B><BR> &nbsp;&nbsp;&nbsp; <A class=small href="#prblm">{html.escape(linkvalue)}</A><BR><B>'
         
         aid_message_html = f"""
+<DIV id=hdr0>
+<table bordercolor="#6600CC" border=10 cellpadding=5 cellspacing=0 width="100%">
+<tr><td class=aid width=20% align=center valign=baseline>
+<H1>ARDOC</H1>
+</td>
+<td class=ttl>
+<EM><B><BIG>{optn} logfile</BIG></EM></B>
+</td></tr>
+<tr><td class=aid> 
+version {ardoc_version}
+</td> 
 <td class=ttl><EM><B>{mess}</B></EM>
 </td>
 </tr>
@@ -696,7 +776,7 @@ def main():
                 if not args.testtesting and not args.qatesting:
                     fg.write('<b><i>Placeholder for a link to GitLab</i></b><BR>\n')
                 
-                fg.write(f'<b>Original log file:</b><CODE> {filename} </CODE><BR>\n')
+                fg.write(f'<b>Original log file:</b><CODE> {file_path} </CODE><BR>\n')
                 
                 # Web links (if configured)
                 if ardoc_web_home:
@@ -726,7 +806,7 @@ def main():
                     if mr_training_domain:
                         fg.write(f"Note: this MR training job probes domain {mr_training_domain}, git branch {mr_current_git_branch}\n")
                     
-                    if "unit-tests" in filename:
+                    if "unit-tests" in file_path:
                         fg.write("Note: there is limit of 75000 lines for this logfile. Excess lines (if any) are truncated.\n")
                         total_ln = 75000
                         first_part = 40000
@@ -771,7 +851,7 @@ def main():
                 ncount_s = 0
                 
                 try:
-                    with open(filename, 'r', encoding='utf-8', errors='ignore') as fb:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as fb:
                         for line_content in fb:
                             ncount_line += 1
                             line_ok_1 = True
@@ -854,8 +934,8 @@ def main():
             print(f"Error generating HTML file: {e}", file=sys.stderr)
         
         # Copy HTML file to web directory
-        if ardoc_webdir and filehtml.exists():
-            filehtml_base = filehtml.name
+        if ardoc_webdir and os.path.exists(filehtml):
+            filehtml_base = os.path.basename(filehtml)
             
             if args.testtesting:
                 copy_html = Path(ardoc_webdir) / f"ARDOC_TestLog_{ardoc_project_relname_copy}" / filehtml_base
