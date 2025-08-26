@@ -97,7 +97,7 @@ def ardoc_testhandler(par):
     except OSError:
        allfiles = []
 
-    print("LIST ALL FILES in ",ARDOC_TESTLOGDIR," : ", allfiles)    
+#    print("LIST ALL FILES in ",ARDOC_TESTLOGDIR," : ", allfiles)    
 
     list91 = [f for f in allfiles if not f.startswith("ardoc_")]
     list_files = [f for f in list91 if not f.endswith("logloglog")]
@@ -105,7 +105,7 @@ def ardoc_testhandler(par):
     # Sort files
     list_files.sort(key=compar)
 
-    print("LIST FILES ",list_files)
+#    print("LIST FILES ",list_files)
     filet_nn = Path(ARDOC_WORK_AREA) / f"{testprepage}_number"
 
     # Read test database

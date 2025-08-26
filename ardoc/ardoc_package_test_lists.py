@@ -60,15 +60,19 @@ for ddd in testdir:
     dict_pack[base]=dirn
 pathdbfileres=dbfile
 dbfileres=open(pathdbfileres, 'w')
+iprintl=0
 for k,v in dict_pack.items():
     blogfile=cmakelogdir+os.sep+k+'.log' 
     vplusk=v+os.sep+k
     if len(re.sub(r'\s+','',v)) == 0 : vplusk=k
+    iprintl=iprintl+1
     if os.path.exists(blogfile):
-       logging.info("ardoc_package_test_lists: found package and container '%s' '%s' and log '%s'",k,v,blogfile)
+       if iprintl < 10:
+           logging.info("ardoc_package_test_lists: found package and container '%s' '%s' and log '%s'",k,v,blogfile)
        dbfileres.write(vplusk+'  '+k+' nomail@cern.ch\n')
     else:
-       logging.info("ardoc_package_test_lists: found package and container '%s' '%s' but NO LOGFILE '%s'",k,v,blogfile)
+       if iprintl < 10:
+           logging.info("ardoc_package_test_lists: found package and container '%s' '%s' but NO LOGFILE '%s'",k,v,blogfile)
 dbfileres.close()
 
 logging.info("ardoc_package_test_lists: =====TEST FILES PROCESSING")
@@ -120,18 +124,22 @@ pathtestdbfileres=testdbfile+'_res'
 pathtestdbfilenores=testdbfile
 testdbfileres=open(pathtestdbfileres, 'w')
 testdbfilenores=open(pathtestdbfilenores, 'w')
+iprintl1=0
 for k,v in dict_pack.items():
     blogfile=testlogdir+os.sep+k+'.log'
     exitcodefile=testlogdir+os.sep+k+'.exitcode'
+    iprintl1=iprintl1+1
     if os.path.exists(blogfile):
-       logging.info("ardoc_package_test_lists: found package and container '%s' '%s' and test log '%s'",k,v,blogfile)
+       if iprintl1 < 10:
+           logging.info("ardoc_package_test_lists: found package and container '%s' '%s' and test log '%s'",k,v,blogfile)
        vplusk=v+os.sep+k
        if len(re.sub(r'\s+','',v)) == 0 : vplusk=k
        vplusk_mod=re.sub('/', '_', vplusk)
 #COPY TEST logfiles to the dirarea of ARDOC_TESTLOG 
        ardoclogfile=dirardoctestlog+os.sep+vplusk_mod+'___'+k+'Conf__'+k+'Test__m.loglog'
        ardocexitcodefile=dirardoctestlog+os.sep+vplusk_mod+'___'+k+'Conf__'+k+'Test__m.exitcode'
-       logging.info("ardoc_package_test_lists: copy '%s' -> '%s' AND '%s' -> '%s'",blogfile,ardoclogfile,exitcodefile,ardocexitcodefile)
+       if iprintl1 < 10:
+           logging.info("ardoc_package_test_lists: copy '%s' -> '%s' AND '%s' -> '%s'",blogfile,ardoclogfile,exitcodefile,ardocexitcodefile)
        shutil.copy2(blogfile,ardoclogfile)
        if os.path.isfile(exitcodefile) : shutil.copy2(exitcodefile,ardocexitcodefile)
 #       testdbfileres.write(vplusk+'  '+k+' nomail@cern.ch\n')
@@ -146,7 +154,8 @@ for k,v in dict_pack.items():
        testdbfileres.write(vplusk+'  '+k+' nomail@cern.ch\n')
        testdbfilenores.write(tttname+" "+tttname_new+" "+tdir+" "+tdir_new+" "+tsui+" "+tlimit+" "+tcont+" "+taut+'\n')
     else:
-       logging.info("ardoc_package_test_lists: found package and container '%s' '%s' but NO TEST LOGFILE '%s'",k,v,blogfile)
+       if iprintl1 < 10:
+           logging.info("ardoc_package_test_lists: found package and container '%s' '%s' but NO TEST LOGFILE '%s'",k,v,blogfile)
 testdbfileres.close()
 testdbfilenores.close()
 

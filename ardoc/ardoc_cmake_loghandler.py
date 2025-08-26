@@ -62,15 +62,19 @@ def main():
         print(f"Error: DB file not found at {dbfilegen}", file=sys.stderr)
         sys.exit(1)
 
+    iprintl = 0    
     for line in dbc:
         line = line.strip()
         if not line or line.startswith('#'):
             continue
 
+        iprintl = iprintl + 1
         fields = line.split()
         pkg = fields[0]
+        pkg_base_1 = os.path.basename(fields[0])
         pkg_base = Path(pkg).name
-        print(f"ardoc_cmake_loghandler.py: package: {pkg} , base {pkg_base}")
+        if iprintl < 10:
+            print(f"ardoc_cmake_loghandler.py: package: {pkg} , base {pkg_base}")
 
         dirlog_path_str = f"{log_type}Logs"
         dirlog = Path(ardoc_relhome) / 'build' / ardoc_arch / dirlog_path_str
@@ -78,15 +82,16 @@ def main():
             dirlog = Path(ardoc_relhome) / dirlog_path_str
 
         try:
-            all_logs = [f for f in os.listdir(dirlog) if f.startswith(f"{pkg_base}.log")]
+#            pattern = re.compile(rf"^{re.escape(pkg_base_1)}\.log$")
+            pattern = re.compile("^" + re.escape(pkg_base_1) + r"\.log$")
+            all_logs = [f for f in os.listdir(dirlog) if pattern.match(f)]
             # Sort logs by modification time, oldest first
             all_logs.sort(key=lambda f: (dirlog / f).stat().st_mtime)
-            print(f"ardoc_cmake_loghandler.py: logs: {all_logs}")
-        except FileNotFoundError:
+            if iprintl < 10: print(f"ardoc_cmake_loghandler.py: logs: {all_logs}")
+        except OSError:
             all_logs = []
             print(f"ardoc_cmake_loghandler.py: warning: log directory not found: {dirlog}")
-
-
+            
         pkgn = pkg.replace('/', '_')
         if args.testhandling:
             file_out_path = logdir / f"{pkgn}___{pkg_base}Conf__{pkg_base}Test__m.loglog"
