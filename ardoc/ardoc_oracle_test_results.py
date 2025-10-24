@@ -233,14 +233,14 @@ for fname in ar_fname:
        cmnd="""select pid,contname||'/'||pname from packages where (contname||'/'||pname)= :tcont"""
     else:
        cmnd="""select pid,contname||'/'||pname from packages where pname= :tcont""" 
-    logging.info("ardoc_oracle_test_results: CMND '%s' cont '%s'",cmnd,tcont)
+#    logging.info("ardoc_oracle_test_results: CMND '%s' cont '%s'",cmnd,tcont)
     cursor.execute(cmnd, { 'tcont' : tcont })
     result = cursor.fetchall()
     pid_current="0"
     if len(result) > 0:
        rowmax=result[-1]
        pid_current=rowmax[0]
-    logging.info("ardoc_oracle_test_results: project id '%s'",pid_current)
+#    logging.info("ardoc_oracle_test_results: project id '%s'",pid_current)
 
     if pid_current != '0': 
       cmnd="""
@@ -274,7 +274,7 @@ pid = :pid_c"""
         logging.error("ardoc_oracle_test_results.py: Error: absent test in tests table: '%s' pid='%s'",tcombin,pid_current)
         #sys.exit(1)
         continue
-    logging.info("ardoc_oracle_test_results.py: TID found: '%s'",tid_current)  
+#    logging.info("ardoc_oracle_test_results.py: TID found: '%s'",tid_current)  
 #
     cmnd="""
       insert into testresults (JID

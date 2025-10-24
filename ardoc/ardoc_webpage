@@ -106,7 +106,7 @@ fi
 
 copy_origin="$ARDOC_WEBDIR"
 echo "ardoc_webpage: Info: cleaning copy origin $copy_origin"
-${ARDOC_HOME}/ardoc_cleaner.pl $copy_origin 20
+python3 ${ARDOC_HOME}/ardoc_cleaner.py $copy_origin 20
 echo "ardoc_webpage: Info: cleaning copy origin $copy_origin completed"
   
 if [ "$ARDOC_WEB_ACCESS_DIR_ALT" != "" ]; then
@@ -114,72 +114,100 @@ if [ "$ARDOC_WEB_ACCESS_DIR_ALT" != "" ]; then
   copy_origin="$ARDOC_WEBDIR"
   copy_target="$ARDOC_WEB_ACCESS_DIR_ALT/${ARDOC_NIGHTLY_GROUP}WebArea/ardoc_web_area${ARDOC_SUFFIX}"
   [[ ! -d $copy_target ]] && mkdir -p $copy_target
+  buildlogarea_origin="${copy_origin}/ARDOC_Log_${ARDOC_PROJECT_RELNAME}"
+  testlogarea_origin="${copy_origin}/ARDOC_TestLog_${ARDOC_PROJECT_RELNAME}"
+  buildlogarea_target="${copy_target}/ARDOC_Log_${ARDOC_PROJECT_RELNAME}"
+  testlogarea_target="${copy_target}/ARDOC_TestLog_${ARDOC_PROJECT_RELNAME}"
   echo "ardoc_webpage: Info: cleaning alternative copy target $copy_target"
-  ${ARDOC_HOME}/ardoc_cleaner_lstat.pl $copy_target 20
+  python3 ${ARDOC_HOME}/ardoc_cleaner_lstat.py $copy_target 20
   echo "ardoc_webpage: Info: cleaning alternative copy target $copy_target completed"
-  rsync_params="--delete -uvrlpt --include=\"/*${ARDOC_PROJECT_RELNAME}/***\" --exclude=\"*\" $copy_origin/ $copy_target"
+  st_sq02=0
+  if [ "${squash_storage}" = "True" ]; then     
+    for logarea in "${buildlogarea_target}" "${testlogarea_target}"
+    do
+      echo "ardoc_webpage: Info: CREATING squashgs logarea: ${logarea}"
+      if [ -L ${logarea} ]; then
+	  echo "ardoc_webpage: Info: symbolic link ${logarea} exists, removing"
+	  logarea_rl=$(readlink "${logarea}")
+	  if [[ ${logarea_rl} =~ /eos/squash ]]; then
+	      output_squash_rm=$(eos squash rm "${logarea}" 2>&1)
+	      echo "ardoc_webpage: SquashFS volume DELETED: ${logarea}"
+              echo "ardoc_webpage: eos squash rm output: ${output_squash_rm}"
+	  else
+	      rm -rf ${logarea}
+	  fi    
+      elif [ -d ${logarea} ]; then
+	  echo "ardoc_webpage: Info: directory ${logarea} exists, removing"
+	  rm -rf ${logarea}
+      elif [ -f	${logarea} ]; then
+	  echo "ardoc_webpage: Info: file ${logarea} exists, removing"
+	  rm -f ${logarea}
+      fi	  
+      echo "ardoc_webpage: Info: running eos squash new ${logarea}"
+      eos squash new ${logarea}; st_sq_new=$?
+      echo "ardoc_webpage: Info: eos squash new returned ${st_sq_new}"
+      [[ "${st_sq_new}" -ne 0 ]] && st_sq02=1
+    done
+  fi   
+#  rsync_params="--delete -uvrlpt --include=\"/*${ARDOC_PROJECT_RELNAME}/***\" --exclude=\"*\" $copy_origin/ $copy_target"
 #  echo "ardoc_webpage: Info: running alt rsync --delete -uvrlpt --include=\"/*${ARDOC_PROJECT_RELNAME}/***\" --exclude=\"*\" $copy_origin/ $copy_target" $(date)
   epoch_start=$(date +%s)
-  rsync_loop "${rsync_params}"
-  st_rsync=$?
+#  rsync_loop "${rsync_params}"
+#  st_rsync=$?
   epoch_end=$(date +%s)
   epoch_diff=$((epoch_end - epoch_start))
   fname=$copy_target/copy_time_stamp.txt
   strng="COPY ON ${hname}, process $$"
   echo ${strng} > ${fname}; st_eos21=$?
   grep -q "${strng}" ${fname}; st_eos22=$?
-  if [ "${st_rsync}" -eq 0 -a "${st_eos21}" -eq 0 -a "${st_eos22}" -eq 0 ]; then
-    echo "INFO: EOS COPY QUALITY CHECK PASSED"
-#    mail -s "Nightly EOS log copy success on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s,success on $(date)"
-  else
-    echo "WARNING: EOS COPY QUALITY CHECK FAILED: rsync status ${st_rsync}, small file write/read: (${fname} ${st_eos21} ${st_eos22})"
-    mail -s "Nightly EOS log copy failure on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s, error codes ${st_rsync} ${st_eos21} ${st_eos22} on $(date)"
-  fi
-  cp ${ARDOC_HOME}/index_directory_list.php ${copy_target}/index.php
-  echo "ardoc_webpage: Info: END running alt rsync --delete -uvrlpt --include=\"/*${ARDOC_PROJECT_RELNAME}/***\" --exclude=\"*\" $copy_origin/ $copy_target ${st_rsync} ${st_eos21} ${st_eos22} runtime ${epoch_diff} s" $(date)
-  buildlogarea="${copy_target}/ARDOC_Log_${ARDOC_PROJECT_RELNAME}"
-  testlogarea="${copy_target}/ARDOC_TestLog_${ARDOC_PROJECT_RELNAME}"
+#  if [ "${st_rsync}" -eq 0 -a "${st_eos21}" -eq 0 -a "${st_eos22}" -eq 0 ]; then
+#    echo "ardoc_webpage: Info: EOS COPY QUALITY CHECK PASSED"
+##    mail -s "Nightly EOS log copy success on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s,success on $(date)"
+#  else
+#    echo "ardoc_webpage: Warning: EOS COPY QUALITY CHECK FAILED: rsync status ${st_rsync}, small file write/read: (${fname} ${st_eos21} ${st_eos22})"
+#    mail -s "Nightly EOS log copy failure on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s, error codes ${st_rsync} ${st_eos21} ${st_eos22} on $(date)"
+#  fi
+# MOVED DOWNSTREAM  cp ${ARDOC_HOME}/index_directory_list.php ${copy_target}/index.php
+#  echo "ardoc_webpage: Info: END running alt rsync --delete -uvrlpt --include=\"/*${ARDOC_PROJECT_RELNAME}/***\" --exclude=\"*\" $copy_origin/ $copy_target ${st_rsync} ${st_eos21} ${st_eos22} runtime ${epoch_diff} s" $(date) 
   if [ "${squash_storage}" = "True" ]; then 
-  for logarea in "${buildlogarea}" "${testlogarea}"
+  for logarea in "${buildlogarea_target}" "${testlogarea_target}"
   do
+    base_logarea=`basename ${logarea}`
+    origin_area=${copy_origin}/${base_logarea}      
+    rsync_params="--delete -uvrlpt ${origin_area}/ $logarea"
+    rsync_loop "${rsync_params}"; st_rsync=$?
+    if [ "${st_rsync}" -eq 0 -a "${st_eos21}" -eq 0 -a "${st_eos22}" -eq 0 ]; then
+        echo "ardoc_webpage: Info: EOS COPY QUALITY CHECK PASSED"
+	##mail -s "Nightly EOS log copy success on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s,success on $(date)"
+    else
+        echo "ardoc_webpage: Warning: EOS COPY QUALITY CHECK FAILED: rsync status ${st_rsync}, small file write/read: (${fname} ${st_eos21} ${st_eos22})"
+        mail -s "Nightly EOS log copy failure on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $copy_target runtime ${epoch_diff} s, error codes ${st_rsync} ${st_eos21} ${st_eos22} on $(date)"
+    fi    
     echo "ardoc_webpage: Info: STARTING squashing logarea: ${logarea}"
-    if [ -d ${logarea} ]; then
-      [[ -d ${logarea}_tmp ]] &&  rm -rf ${logarea}_tmp	
-      echo "ardoc_webpage: Info: running mv ${logarea} ${logarea}_tmp"
-      mv ${logarea} ${logarea}_tmp; st_sq01=$?
-      echo "ardoc_webpage: Info: ls ${logarea}"
-      ls -ltr ${logarea}
-      echo "ardoc_webpage: Info: ls ${logarea}_tmp"
-      ls -ltr ${logarea}_tmp
-      echo "ardoc_webpage: Info: running eos squash new ${logarea}"
-      eos squash new ${logarea}; st_sq02=$?
-      echo "ardoc_webpage: Info: running rsync -uvrlpt ${logarea}_tmp/ ${logarea}"
-      rsync_params="-uvrlpt ${logarea}_tmp/ ${logarea}"
-      rsync_loop "${rsync_params}"; st_sq03=$?
-      echo "ardoc_webpage: Info: running eos squash pack ${logarea}"
-      eos squash pack ${logarea}; st_sq04=$?
-      st_sqsum=0
-      [[ "${st_sq01}" != 0 || "${st_sq02}" != 0 || "${st_sq03}" != 0 || "${st_sq04}" != 0 ]] && st_sqsum=1
+    [[ -d ${logarea} ]] && st_sq01=0 || st_sq01=1
+    echo "ardoc_webpage: Info: ls ${logarea}"
+    echo "ardoc_webpage: Info: running eos squash pack ${logarea}"
+    eos squash pack ${logarea}; st_sq03=$?
+    st_sqsum=0
+      [[ "${st_sq01}" != 0 || "${st_sq02}" != 0 || "${st_sq03}" != 0 ]] && st_sqsum=1
       if [ "${st_sqsum}" -eq 0 ]; then
          echo "INFO: SquashFS archive was successfully created on $(date)"
 #         mail -s "SquashFS archive was successfully created on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $logarea SquashFS archive success on $(date)"
-         echo "INFO: removing ${logarea}_tmp"
-         rm -rf ${logarea}_tmp
       else
-         echo "WARNING: SquashFS archive creation failed on $(date), error codes ${st_sq01}, ${st_sq02}, ${st_sq03}, ${st_sq04}"
-         mail -s "SquashFS archive creation failed on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $logarea, SquashFS error codes ${st_sq01}, ${st_sq02}, ${st_sq03}, ${st_sq04} on $(date\
+         echo "WARNING: SquashFS archive creation failed on $(date), error codes ${st_sq01}, ${st_sq02}, ${st_sq03}"
+         mail -s "SquashFS archive creation failed on ${hname}" "undrus@bnl.gov" <<< "$copy_origin to $logarea, SquashFS error codes ${st_sq01}, ${st_sq02}, ${st_sq03} on $(date\
 )"
       fi
-    fi
     echo "ardoc_webpage: Info: END squashing logarea: ${logarea}"
   done
+  cp ${ARDOC_HOME}/index_directory_list.php ${copy_target}/index.php
   fi #if [ "${squash_storage}" = "True" ]; then
 fi      
 
 if [ "$ARDOC_WEB_ACCESS_DIR" != "" ]; then
 copy_target="$ARDOC_WEB_ACCESS_DIR/${ARDOC_NIGHTLY_GROUP}WebArea/ardoc_web_area${ARDOC_SUFFIX}" 
 echo "ardoc_webpage: Info: cleaning copy target $copy_target"
-${ARDOC_HOME}/ardoc_cleaner.pl $copy_target 20
+python3 ${ARDOC_HOME}/ardoc_cleaner_lstat.py $copy_target 20
 echo "ardoc_webpage: Info: cleaning copy target $copy_target completed"
 [[ ! -d $copy_target ]] && mkdir -p $copy_target
 echo "ardoc_webpage: Info: running rsync -uvrlpt $copy_origin/ $copy_target"

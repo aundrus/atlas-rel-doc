@@ -18,7 +18,7 @@ echo "[ARDOC] Starting Oracle interface $command on ${hostnm}, limit $timeminute
  spp_check=`ps -ww -u $UID -o pid,ppid,args | grep -e "$command" | grep -v grep | grep -v "wrapper" | head -1 | awk '{print $1}'` ;\
  if [ "$spp" != "$spp_check" ]; then echo "[ARDOC, Oracle wrapper] completion of Oracle interface process is detected"; break; fi; done;\
  spp_check=`ps -ww -u $UID -o pid,ppid,args | grep -e "$command" | grep -v grep | grep -v "wrapper" | head -1 | awk '{print $1}'` ;\
- if [ "$spp" = "$spp_check" ]; then echo "[ARDOC, Oracle wrapper] Oracleinterface process killed as time quota spent"; ${ARDOC_HOME}/ardoc_kill_fam.pl $spp 2; sleep 5; ${ARDOC_HOME}/ardoc_kill_fam.pl $spp 9 ; fi;\
+ if [ "$spp" = "$spp_check" ]; then echo "[ARDOC, Oracle wrapper] Oracleinterface process killed as time quota spent"; python3 ${ARDOC_HOME}/ardoc_kill_fam.py $spp 2; sleep 5; python3 ${ARDOC_HOME}/ardoc_kill_fam.py $spp 9 ; fi;\
  ps -ww -u $UID -o pgid,pid,args | grep -e "$command" | grep -v grep | grep -v "wrapper" | while read apgid apid acmd; do \
  if [ "$sppg" != "" -a "$apgid" = "$sppg" -a "$apid" != "" ]; then echo "[ARDOC, Oracle wrapper] runaway process $apid...."; echo " "; sleep 5; ps -ww -u $UID -o pgid,pid,args | grep -e "$command" | grep -v grep | grep -v "wrapper" | grep " ${apid} ">/dev/null 2>&1; st=$?; if [ "$st" -eq 0 ]; then kill -9 $apid; echo "[ARDOC, Oracle wrapper] process $apid is killed"; echo " "; fi; fi;\
 done)&
